@@ -170,10 +170,13 @@ async function toggleSubtask(subtask: any) {
 }
 
 async function addSubtask() {
+  console.log('[Modal] addSubtask called, newSubtaskTitle:', newSubtaskTitle.value)
   const title = newSubtaskTitle.value.trim()
-  if (!title) return
+  if (!title) { console.log('[Modal] empty, skipping'); return }
   try {
+    console.log('[Modal] calling createSubtask API...')
     const updated = await createSubtask(props.task.id, title)
+    console.log('[Modal] API returned:', updated)
     editSubtasks.value = updated.subtasks
     newSubtaskTitle.value = ''
   } catch (e) {

@@ -121,7 +121,8 @@ function mapBackendSubtask(s: BackendSubtask): Subtask {
   }
 }
 
-function mapBackendTask(t: BackendTask): Task {
+function mapBackendTask(t: BackendTask | null): Task {
+  if (!t) throw new Error('mapBackendTask received null')
   return {
     id: t.id,
     projectId: t.project_id,
@@ -181,8 +182,11 @@ export async function createSubtask(taskId: string, title: string): Promise<Task
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ title }),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const json = await res.json()
+  if (!res.ok || json.error) {
+    console.error('[API] createSubtask error:', json.error)
+    throw new Error(json.error || `HTTP ${res.status}`)
+  }
   return mapBackendTask(json.data)
 }
 

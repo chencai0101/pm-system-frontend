@@ -40,6 +40,7 @@
               @tasks-reordered="(updated) => onTasksReordered(col.key, updated)"
               @status-change="onStatusChange"
               @drag-start="onTaskDragStart"
+              @subtask-toggled="onSubtaskToggled"
             />
           </div>
         </template>
@@ -71,6 +72,7 @@ import {
   fetchProjects,
   fetchTasksByProject,
   updateTaskStatus,
+  updateSubtask,
   type Project,
   type Task,
   type TaskStatus,
