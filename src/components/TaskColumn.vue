@@ -10,7 +10,6 @@
         :key="task.id"
         class="task-slot"
         :class="{ dragging: dragIndex === index }"
-        draggable="true"
         @dragstart="onDragStart(index, task.id, $event)"
         @dragend="onDragEnd"
       >
