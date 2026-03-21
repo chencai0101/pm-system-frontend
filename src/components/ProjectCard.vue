@@ -8,7 +8,7 @@
     <div class="project-card-bg" />
     <div
       class="project-card-fill"
-      :style="{ width: `${project.progress * 100}%` }"
+      :style="{ width: `${(computedProgress ?? project.progress) * 100}%` }"
     />
 
     <!-- Card content -->
@@ -28,7 +28,7 @@
         <div class="project-footer">
           <span class="project-progress-text">
             {{ project.completedCount }}/{{ project.taskCount }} 任务
-            · {{ Math.round(project.progress * 100) }}%
+            · {{ Math.round((computedProgress ?? project.progress) * 100) }}%
           </span>
           <span class="status-badge" :class="project.status">
             {{ project.status }}
@@ -46,6 +46,7 @@ defineProps<{
   project: Project
   selected?: boolean
   clickable?: boolean
+  computedProgress?: number
 }>()
 
 const emit = defineEmits<{

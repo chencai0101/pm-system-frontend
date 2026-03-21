@@ -6,6 +6,7 @@
         <ProjectList
           :projects="projects"
           :selected-id="projectId"
+          :tasks="tasks"
           @select="onSelectProject"
         />
       </aside>
@@ -23,7 +24,7 @@
             <div class="board-project-name">{{ selectedProject.name }}</div>
             <div class="board-project-meta">
               <span class="progress-label">
-                进度 {{ Math.round(selectedProject.progress * 100) }}%
+                进度 {{ realProgress }}%
               </span>
             </div>
           </div>
@@ -113,6 +114,13 @@ const tasksByStatus = computed(() => {
 
 const selectedProject = computed(() =>
   projects.value.find(p => p.id === props.projectId) ?? null
+)
+
+// Real progress: only top-level tasks (no parentId), done status = completed
+const totalTasks = computed(() => tasks.value.filter(t => !t.parentId).length)
+const doneTasks = computed(() => tasks.value.filter(t => !t.parentId && t.status === 'done').length)
+const realProgress = computed(() =>
+  totalTasks.value === 0 ? 0 : Math.round((doneTasks.value / totalTasks.value) * 100)
 )
 
 // --- Drag handlers (board-level delegation, like FlowBoard) ---

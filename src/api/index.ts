@@ -26,6 +26,7 @@ interface BackendProjectsResponse {
 interface BackendTask {
   id: string
   project_id: string
+  parent_id: string | null
   title: string
   owner: string
   status: string
@@ -81,6 +82,7 @@ export interface Subtask {
 export interface Task {
   id: string
   projectId: string
+  parentId: string | null
   title: string
   owner: string
   status: TaskStatus
@@ -126,6 +128,7 @@ function mapBackendTask(t: BackendTask | null): Task {
   return {
     id: t.id,
     projectId: t.project_id,
+    parentId: t.parent_id,
     title: t.title,
     owner: t.owner,
     status: t.status as TaskStatus,

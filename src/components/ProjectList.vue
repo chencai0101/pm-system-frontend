@@ -8,6 +8,7 @@
         :project="project"
         :selected="project.id === selectedId"
         :clickable="true"
+        :computed-progress="projectProgressMap[project.id]"
         @click="$emit('select', project.id)"
       />
     </div>
@@ -16,16 +17,34 @@
 
 <script setup lang="ts">
 import ProjectCard from './ProjectCard.vue'
-import type { Project } from '../api/index'
+import type { Project, Task } from '../api/index'
+import { computed } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   projects: Project[]
   selectedId: string
+  tasks?: Task[]
 }>()
 
 defineEmits<{
   select: [id: string]
 }>()
+
+// Compute real progress per project from tasks
+const projectProgressMap = computed(() => {
+  const map: Record<string, number> = {}
+  for (const p of props.projects) {
+    if (!props.tasks || props.tasks.length === 0) {
+      map[p.id] = p.progress
+      continue
+    }
+    const projectTasks = props.tasks.filter(t => t.projectId === p.id && !t.parentId)
+    const total = projectTasks.length
+    const done = projectTasks.filter(t => t.status === 'done').length
+    map[p.id] = total === 0 ? 0 : done / total
+  }
+  return map
+})
 </script>
 
 <style scoped>

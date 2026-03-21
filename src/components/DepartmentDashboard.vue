@@ -13,6 +13,7 @@
           :key="project.id"
           :project="project"
           :clickable="true"
+          :computed-progress="projectProgressMap[project.id]"
           @click="onCardClick(project.id)"
         />
       </div>
@@ -21,15 +22,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import ProjectCard from './ProjectCard.vue'
-import { fetchProjects } from '../api/index'
+import { fetchProjects, fetchTasksByProject, type Project, type Task } from '../api/index'
 
-const projects = ref<any[]>([])
+const projects = ref<Project[]>([])
+const tasksByProject = ref<Record<string, Task[]>>({})
 const loading = ref(true)
 const error = ref<string | null>(null)
 
 const emit = defineEmits<{ 'select-project': [id: string] }>()
+
+// Compute real progress per project from top-level tasks
+const projectProgressMap = computed(() => {
+  const map: Record<string, number> = {}
+  for (const p of projects.value) {
+    const projectTasks = tasksByProject.value[p.id] ?? []
+    const topTasks = projectTasks.filter(t => !t.parentId)
+    const total = topTasks.length
+    const done = topTasks.filter(t => t.status === 'done').length
+    map[p.id] = total === 0 ? 0 : done / total
+  }
+  return map
+})
 
 function onCardClick(id: string) {
   console.log('[Dashboard] card clicked:', id)
@@ -40,6 +55,18 @@ onMounted(async () => {
   try {
     const res = await fetchProjects()
     projects.value = res.data
+
+    // Fetch tasks for each project in parallel to compute real progress
+    const projectIds = res.data.map((p: Project) => p.id)
+    const results = await Promise.allSettled(
+      projectIds.map(id => fetchTasksByProject(id))
+    )
+    for (let i = 0; i < projectIds.length; i++) {
+      const result = results[i]
+      if (result.status === 'fulfilled') {
+        tasksByProject.value[projectIds[i]] = result.value.data
+      }
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : '未知错误'
   } finally {
