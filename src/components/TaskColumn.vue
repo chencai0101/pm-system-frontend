@@ -6,17 +6,21 @@
     </div>
     <div
       class="column-cards"
-      :class="{ 'drag-over': isDraggingOver }"
+      :class="{
+        'drag-over': isDraggingOver && dragSourceStatus !== column.key,
+        'drag-over-same': isDraggingOver && dragSourceStatus === column.key,
+      }"
       @dragover.prevent="onColumnDragOver"
+      @dragenter.prevent="onDragEnter"
+      @dragleave="onDragLeave"
       @drop.prevent="onColumnDrop"
-      @dragleave="onColumnDragLeave"
     >
       <div
         v-for="(task, index) in tasks"
         :key="task.id"
         class="task-slot"
         :class="{
-          'drag-over': dragOverIndex === index && dragSourceIndex !== index,
+          'drag-over': dragOverIndex === index && dragSourceIndex !== index && dragSourceStatus === column.key,
           'dragging': isDragging && dragSourceIndex === index,
         }"
         draggable="true"
@@ -36,7 +40,7 @@
       <div
         class="drop-zone-end"
         :class="{ 'drop-active': isDragging && dragSourceIndex !== null }"
-        @drop.prevent="onDropAtEnd"
+        @drop.prevent.stop="onDropAtEnd"
       />
     </div>
   </div>
@@ -62,9 +66,10 @@ const emit = defineEmits<{
 const isDragging = ref(false)
 const isDraggingOver = ref(false)
 const dragSourceIndex = ref<number | null>(null)
-const dragSourceStatus = ref<TaskStatus | null>(null)
 const dragSourceTaskId = ref<string | null>(null)
+const dragSourceStatus = ref<TaskStatus | null>(null)
 const dragOverIndex = ref<number | null>(null)
+let dragLeaveTimer: ReturnType<typeof setTimeout> | null = null
 
 function onDragStart(index: number, taskId: string, e: DragEvent) {
   isDragging.value = true
@@ -77,6 +82,8 @@ function onDragStart(index: number, taskId: string, e: DragEvent) {
 }
 
 function onDragEnd() {
+  console.log('[DRAG_END] source:', dragSourceStatus.value, '→ task:', dragSourceTaskId.value)
+  if (dragLeaveTimer) clearTimeout(dragLeaveTimer)
   isDragging.value = false
   isDraggingOver.value = false
   dragSourceIndex.value = null
@@ -85,23 +92,41 @@ function onDragEnd() {
   dragOverIndex.value = null
 }
 
-function onColumnDragOver(_e: DragEvent) {
-  isDraggingOver.value = true
+function onDragEnter(e: DragEvent) {
+  e.preventDefault()
+  if (dragLeaveTimer) { clearTimeout(dragLeaveTimer); dragLeaveTimer = null }
+  // Only show drag-over for columns that are NOT the source
+  if (dragSourceStatus.value !== props.column.key) {
+    isDraggingOver.value = true
+  }
 }
 
-function onColumnDragLeave() {
-  isDraggingOver.value = false
+function onColumnDragOver(_e: DragEvent) {
+  _e.preventDefault()
+  // Only show big outline for other columns (same column uses task-slot indicator)
+  if (dragSourceStatus.value !== props.column.key) {
+    isDraggingOver.value = true
+  }
+}
+
+function onDragLeave(_e: DragEvent) {
+  // Debounce: don't hide immediately (fires when moving between children)
+  if (dragLeaveTimer) clearTimeout(dragLeaveTimer)
+  dragLeaveTimer = setTimeout(() => {
+    isDraggingOver.value = false
+  }, 50)
 }
 
 function onDragOverIndex(index: number) {
-  dragOverIndex.value = index
-  isDraggingOver.value = false
+  if (dragSourceStatus.value === props.column.key) {
+    dragOverIndex.value = index
+  }
 }
 
 function onDropOnTask(targetIndex: number) {
   if (dragSourceIndex.value === null) return
   if (dragSourceIndex.value === targetIndex) { onDragEnd(); return }
-
+  console.log('[DROP_ON_TASK]', dragSourceTaskId.value, 'at', targetIndex, 'same column:', dragSourceStatus.value === props.column.key)
   const updated = [...props.tasks]
   const [moved] = updated.splice(dragSourceIndex.value, 1)
   updated.splice(targetIndex, 0, moved)
@@ -111,6 +136,7 @@ function onDropOnTask(targetIndex: number) {
 
 function onDropAtEnd() {
   if (dragSourceIndex.value === null) return
+  console.log('[DROP_AT_END]')
   const updated = [...props.tasks]
   const [moved] = updated.splice(dragSourceIndex.value, 1)
   updated.push(moved)
@@ -119,6 +145,8 @@ function onDropAtEnd() {
 }
 
 function onColumnDrop(_e: DragEvent) {
+  _e.preventDefault()
+  if (dragLeaveTimer) clearTimeout(dragLeaveTimer)
   isDraggingOver.value = false
   if (dragSourceStatus.value === null) return
 
@@ -126,15 +154,13 @@ function onColumnDrop(_e: DragEvent) {
   const sourceStatus = dragSourceStatus.value
   const taskId = dragSourceTaskId.value
 
-  console.log('[COLUMN_DROP]', targetStatus, 'source:', sourceStatus, 'task:', taskId)
+  console.log('[COLUMN_DROP]', targetStatus, '| source:', sourceStatus, '| task:', taskId)
 
   if (sourceStatus !== targetStatus && taskId) {
     console.log('[COLUMN_DROP] cross-column → emit status-change', taskId, '→', targetStatus)
     emit('status-change', taskId, targetStatus)
-    onDragEnd()
-    return
   }
-  onDropAtEnd()
+  onDragEnd()
 }
 
 function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean) {
@@ -191,20 +217,23 @@ function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean)
   border-radius: var(--radius-md);
   transition: background 0.15s;
 }
+/* Big dashed outline: only for OTHER columns */
 .column-cards.drag-over {
   background: var(--accent-subtle);
   outline: 2px dashed var(--accent);
   outline-offset: -2px;
 }
+/* Subtle tint: for SAME column (small indicator shown on task-slot) */
+.column-cards.drag-over-same {
+  background: var(--accent-subtle);
+}
 .task-slot {
   position: relative;
-  transition: transform 0.15s;
+  transition: transform 0.1s;
   cursor: grab;
 }
 .task-slot:active { cursor: grabbing; }
-.task-slot.drag-over {
-  transform: translateY(2px);
-}
+/* Small line indicator at top: only for same-column drags */
 .task-slot.drag-over::before {
   content: '';
   position: absolute;
