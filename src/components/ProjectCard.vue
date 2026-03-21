@@ -1,5 +1,5 @@
 <template>
-  <article class="project-card">
+  <article class="project-card" :class="{ selected }">
     <!-- Progress bar background -->
     <div class="project-card-bg" />
     <div
@@ -40,5 +40,6 @@ import type { Project } from '../api/index'
 
 defineProps<{
   project: Project
+  selected?: boolean
 }>()
 </script>

@@ -1,8 +1,8 @@
 // ============================================================
-// API — Projects (pm-system)
+// API — Projects & Tasks (pm-system)
 // ============================================================
 
-const API_BASE = 'http://localhost:8001'
+const API_BASE = 'http://localhost:8000'
 
 // Backend response (snake_case)
 interface BackendProject {
@@ -20,6 +20,33 @@ interface BackendProject {
 
 interface BackendProjectsResponse {
   data: BackendProject[]
+}
+
+// Backend Task (snake_case)
+interface BackendTask {
+  id: string
+  project_id: string
+  title: string
+  owner: string
+  status: string
+  priority: string
+  start_date: string
+  end_date: string
+  completed_at: string | null
+  note: string
+  subtasks: BackendSubtask[]
+}
+
+interface BackendSubtask {
+  id: string
+  task_id: string
+  title: string
+  completed: boolean
+  completed_at: string | null
+}
+
+interface BackendTasksResponse {
+  data: BackendTask[]
 }
 
 // Frontend interface (camelCase)
@@ -40,6 +67,35 @@ export interface ProjectsResponse {
   data: Project[]
 }
 
+export type TaskStatus = 'open' | 'in-progress' | 'review' | 'done'
+export type TaskPriority = 'low' | 'medium' | 'high'
+
+export interface Subtask {
+  id: string
+  taskId: string
+  title: string
+  completed: boolean
+  completedAt: string | null
+}
+
+export interface Task {
+  id: string
+  projectId: string
+  title: string
+  owner: string
+  status: TaskStatus
+  priority: TaskPriority
+  startDate: string
+  endDate: string
+  completedAt: string | null
+  note: string
+  subtasks: Subtask[]
+}
+
+export interface TasksResponse {
+  data: Task[]
+}
+
 function mapBackendProject(p: BackendProject): Project {
   return {
     id: p.id,
@@ -55,6 +111,32 @@ function mapBackendProject(p: BackendProject): Project {
   }
 }
 
+function mapBackendSubtask(s: BackendSubtask): Subtask {
+  return {
+    id: s.id,
+    taskId: s.task_id,
+    title: s.title,
+    completed: s.completed,
+    completedAt: s.completed_at,
+  }
+}
+
+function mapBackendTask(t: BackendTask): Task {
+  return {
+    id: t.id,
+    projectId: t.project_id,
+    title: t.title,
+    owner: t.owner,
+    status: t.status as TaskStatus,
+    priority: t.priority as TaskPriority,
+    startDate: t.start_date,
+    endDate: t.end_date,
+    completedAt: t.completed_at,
+    note: t.note,
+    subtasks: t.subtasks.map(mapBackendSubtask),
+  }
+}
+
 export async function fetchProjects(): Promise<ProjectsResponse> {
   try {
     const res = await fetch(`${API_BASE}/api/projects`)
@@ -65,4 +147,52 @@ export async function fetchProjects(): Promise<ProjectsResponse> {
     console.error('Failed to fetch projects:', err)
     return { data: [] }
   }
+}
+
+export async function fetchTasksByProject(projectId: string): Promise<TasksResponse> {
+  try {
+    const res = await fetch(`${API_BASE}/api/projects/${projectId}/tasks`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const json: BackendTasksResponse = await res.json()
+    return { data: json.data.map(mapBackendTask) }
+  } catch (err) {
+    console.error('Failed to fetch tasks:', err)
+    return { data: [] }
+  }
+}
+
+export async function updateTask(
+  id: string,
+  data: { title?: string; note?: string; priority?: TaskPriority; end_date?: string }
+): Promise<Task> {
+  const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: BackendTask = await res.json()
+  return mapBackendTask(json)
+}
+
+export async function updateTaskStatus(id: string, status: string): Promise<Task> {
+  const res = await fetch(`${API_BASE}/api/tasks/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: BackendTask = await res.json()
+  return mapBackendTask(json)
+}
+
+export async function toggleSubtask(id: string, completed: boolean): Promise<Subtask> {
+  const res = await fetch(`${API_BASE}/api/subtasks/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ completed }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: BackendSubtask = await res.json()
+  return mapBackendSubtask(json)
 }
