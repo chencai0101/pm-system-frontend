@@ -1,7 +1,5 @@
 <template>
   <div class="app">
-    <Header />
-
     <main class="main-content">
       <p class="section-title">全部项目 · {{ projects.length }}</p>
 
@@ -38,7 +36,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import Header from './Header.vue'
 import ProjectCard from './ProjectCard.vue'
 import { fetchProjects, type Project } from '../api/index'
 
@@ -61,3 +58,58 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.app {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--muted);
+  font-size: 14px;
+  gap: 8px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  opacity: 0.3;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+</style>

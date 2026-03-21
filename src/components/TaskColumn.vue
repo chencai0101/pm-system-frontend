@@ -6,9 +6,10 @@
     </div>
     <div
       class="column-cards"
-      @dragover.prevent="onDragOver"
-      @drop="onDrop"
-      @dragleave="onDragLeave"
+      :class="{ 'drag-over': isDraggingOver && dragSourceStatus !== column.key }"
+      @dragover.prevent="onColumnDragOver"
+      @drop.prevent="onColumnDrop"
+      @dragleave="onColumnDragLeave"
     >
       <div
         v-for="(task, index) in tasks"
@@ -16,7 +17,7 @@
         class="task-slot"
         :class="{
           'drag-over': dragOverIndex === index && dragSourceIndex !== index,
-          'dragging': dragSourceIndex === index,
+          'dragging': isDragging && dragSourceIndex === index,
         }"
         @dragover.prevent="onDragOverIndex(index)"
         @drop.prevent="onDropOnTask(index)"
@@ -24,7 +25,7 @@
         <TaskCard
           :task="task"
           draggable="true"
-          @dragstart="onDragStart(index)"
+          @dragstart="onDragStart(index, $event)"
           @dragend="onDragEnd"
           @edit="$emit('open-edit', task)"
           @subtask-toggled="onSubtaskToggled"
@@ -55,34 +56,47 @@ const emit = defineEmits<{
   'open-edit': [task: Task]
   'subtask-toggled': [taskId: string, subtaskId: string, completed: boolean]
   'tasks-reordered': [tasks: Task[]]
+  'status-change': [taskId: string, newStatus: TaskStatus]
 }>()
 
 const isDragging = ref(false)
+const isDraggingOver = ref(false)
 const dragSourceIndex = ref<number | null>(null)
+const dragSourceStatus = ref<TaskStatus | null>(null)
 const dragOverIndex = ref<number | null>(null)
+const draggingTaskId = ref<string | null>(null)
 
-function onDragStart(index: number) {
+function onDragStart(index: number, e: DragEvent) {
   isDragging.value = true
   dragSourceIndex.value = index
+  draggingTaskId.value = props.tasks[index]?.id ?? null
+  dragSourceStatus.value = props.column.key
+  e.dataTransfer!.effectAllowed = 'move'
+  e.dataTransfer!.setData('text/plain', String(draggingTaskId.value))
 }
 
 function onDragEnd() {
   isDragging.value = false
+  isDraggingOver.value = false
   dragSourceIndex.value = null
+  dragSourceStatus.value = null
   dragOverIndex.value = null
+  draggingTaskId.value = null
 }
 
-function onDragOver(e: DragEvent) {
+function onColumnDragOver(e: DragEvent) {
   e.preventDefault()
+  isDraggingOver.value = true
+}
+
+function onColumnDragLeave() {
+  isDraggingOver.value = false
 }
 
 function onDragOverIndex(index: number) {
   if (dragSourceIndex.value === null) return
   dragOverIndex.value = index
-}
-
-function onDragLeave() {
-  // Only clear if leaving the container (not a child)
+  isDraggingOver.value = false
 }
 
 function onDropOnTask(targetIndex: number) {
@@ -109,8 +123,22 @@ function onDropAtEnd() {
   onDragEnd()
 }
 
-function onDrop(_e: DragEvent) {
-  // Generic drop — fall back to end-of-list reorder
+function onColumnDrop(_e: DragEvent) {
+  // This fires when dropping on the column container (empty space, not on a task)
+  isDraggingOver.value = false
+  if (dragSourceStatus.value === null) return
+
+  const targetStatus = props.column.key
+  const sourceStatus = dragSourceStatus.value
+
+  // Cross-column drop: emit status-change if status differs
+  if (sourceStatus !== targetStatus && draggingTaskId.value) {
+    emit('status-change', draggingTaskId.value, targetStatus)
+    onDragEnd()
+    return
+  }
+
+  // Same-column drop on empty space: reorder at end
   onDropAtEnd()
 }
 
@@ -169,6 +197,14 @@ function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean)
   flex: 1;
   padding-right: 2px;
   min-height: 80px;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.column-cards.drag-over {
+  background: var(--accent-subtle);
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
 }
 
 .task-slot {

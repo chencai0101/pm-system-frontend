@@ -37,6 +37,7 @@
               :tasks="tasksByStatus[col.key]"
               @open-edit="onOpenEdit"
               @tasks-reordered="(updated) => onTasksReordered(col.key, updated)"
+              @status-change="onStatusChange"
             />
           </div>
         </template>
@@ -68,6 +69,7 @@ import TaskEditModal from '../components/TaskEditModal.vue'
 import {
   fetchProjects,
   fetchTasksByProject,
+  updateTaskStatus,
   type Project,
   type Task,
   type TaskStatus,
@@ -142,6 +144,21 @@ function onTasksReordered(status: TaskStatus, reorderedTasks: Task[]) {
   // Replace the tasks for this status with the reordered list
   const others = tasks.value.filter(t => t.status !== status)
   tasks.value = [...others, ...reorderedTasks]
+}
+
+async function onStatusChange(taskId: string, newStatus: TaskStatus) {
+  // Optimistically update local state
+  const task = tasks.value.find(t => t.id === taskId)
+  if (!task) return
+  const oldStatus = task.status
+  task.status = newStatus
+
+  try {
+    await updateTaskStatus(taskId, newStatus)
+  } catch {
+    // Rollback on failure
+    task.status = oldStatus
+  }
 }
 
 // Load tasks when projectId changes

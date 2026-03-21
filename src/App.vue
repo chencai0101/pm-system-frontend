@@ -1,7 +1,6 @@
 <template>
   <div id="app-root">
-    <Header />
-    <TabBar
+    <Header
       :current-tab="currentTab"
       :project-id="selectedProjectId"
       @click:dashboard="goToDashboard"
@@ -21,7 +20,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Header from './components/Header.vue'
-import TabBar from './components/TabBar.vue'
 import DepartmentDashboard from './components/DepartmentDashboard.vue'
 import ProjectTaskDetail from './views/ProjectTaskDetail.vue'
 
