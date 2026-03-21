@@ -1,7 +1,5 @@
 <template>
   <div class="app">
-    <Header />
-
     <div class="page-body">
       <!-- Left: Project List -->
       <aside class="sidebar">
@@ -38,6 +36,7 @@
               :column="col"
               :tasks="tasksByStatus[col.key]"
               @open-edit="onOpenEdit"
+              @tasks-reordered="(updated) => onTasksReordered(col.key, updated)"
             />
           </div>
         </template>
@@ -63,7 +62,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import Header from '../components/Header.vue'
 import ProjectList from '../components/ProjectList.vue'
 import TaskColumn from '../components/TaskColumn.vue'
 import TaskEditModal from '../components/TaskEditModal.vue'
@@ -138,6 +136,12 @@ async function onTaskSaved(updated: Task) {
   const idx = tasks.value.findIndex(t => t.id === updated.id)
   if (idx !== -1) tasks.value[idx] = updated
   editingTask.value = null
+}
+
+function onTasksReordered(status: TaskStatus, reorderedTasks: Task[]) {
+  // Replace the tasks for this status with the reordered list
+  const others = tasks.value.filter(t => t.status !== status)
+  tasks.value = [...others, ...reorderedTasks]
 }
 
 // Load tasks when projectId changes

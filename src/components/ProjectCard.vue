@@ -1,5 +1,9 @@
 <template>
-  <article class="project-card" :class="{ selected }">
+  <article
+    class="project-card"
+    :class="{ selected, clickable }"
+    @click="clickable && emit('click')"
+  >
     <!-- Progress bar background -->
     <div class="project-card-bg" />
     <div
@@ -41,5 +45,10 @@ import type { Project } from '../api/index'
 defineProps<{
   project: Project
   selected?: boolean
+  clickable?: boolean
+}>()
+
+const emit = defineEmits<{
+  click: []
 }>()
 </script>

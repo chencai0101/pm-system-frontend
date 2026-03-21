@@ -28,6 +28,8 @@
           v-for="project in projects"
           :key="project.id"
           :project="project"
+          :clickable="true"
+          @click="$emit('select-project', project.id)"
         />
       </div>
     </main>
@@ -43,6 +45,10 @@ import { fetchProjects, type Project } from '../api/index'
 const projects = ref<Project[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+
+defineEmits<{
+  'select-project': [id: string]
+}>()
 
 onMounted(async () => {
   try {

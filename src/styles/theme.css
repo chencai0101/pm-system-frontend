@@ -266,6 +266,11 @@ body {
   border-color: var(--border-strong);
 }
 
+.project-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
 /* Progress bar fills the card background */
 .project-card-bg {
   position: absolute;

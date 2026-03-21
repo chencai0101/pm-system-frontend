@@ -1,47 +1,75 @@
 <template>
   <div id="app-root">
-    <DepartmentDashboard v-if="route === 'dashboard'" />
+    <Header />
+    <TabBar
+      :current-tab="currentTab"
+      :project-id="selectedProjectId"
+      @click:dashboard="goToDashboard"
+      @click:project="goToProject"
+    />
+    <DepartmentDashboard
+      v-if="currentTab === 'dashboard'"
+      @select-project="onSelectProject"
+    />
     <ProjectTaskDetail
-      v-else-if="route === 'project'"
-      :project-id="projectId"
+      v-else-if="currentTab === 'project'"
+      :project-id="selectedProjectId"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import Header from './components/Header.vue'
+import TabBar from './components/TabBar.vue'
 import DepartmentDashboard from './components/DepartmentDashboard.vue'
 import ProjectTaskDetail from './views/ProjectTaskDetail.vue'
 
-type Route = 'dashboard' | 'project'
+type Tab = 'dashboard' | 'project'
 
-const route = ref<Route>('dashboard')
-const projectId = ref<string>('')
+const currentTab = ref<Tab>('dashboard')
+const selectedProjectId = ref<string>('')
 
-function parseHash(): { route: Route; projectId: string } {
+function parseHash(): { tab: Tab; projectId: string } {
   const hash = window.location.hash
   if (hash.startsWith('#/project/')) {
     const id = hash.replace('#/project/', '')
-    return { route: 'project', projectId: id }
+    return { tab: 'project', projectId: id }
   }
-  return { route: 'dashboard', projectId: '' }
+  return { tab: 'dashboard', projectId: '' }
+}
+
+function goToDashboard() {
+  window.location.hash = '#/dashboard'
+}
+
+function goToProject(id?: string) {
+  const targetId = id || selectedProjectId.value
+  if (targetId) window.location.hash = `#/project/${targetId}`
+}
+
+function onSelectProject(id: string) {
+  selectedProjectId.value = id
+  window.location.hash = `#/project/${id}`
 }
 
 onMounted(() => {
   const parsed = parseHash()
-  route.value = parsed.route
-  projectId.value = parsed.projectId
+  currentTab.value = parsed.tab
+  selectedProjectId.value = parsed.projectId
 
   window.addEventListener('hashchange', () => {
     const parsed = parseHash()
-    route.value = parsed.route
-    projectId.value = parsed.projectId
+    currentTab.value = parsed.tab
+    selectedProjectId.value = parsed.projectId
   })
 })
 </script>
 
 <style>
 #app-root {
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   overflow: hidden;
 }
