@@ -1,6 +1,10 @@
 <template>
-  <div class="task-card" :class="{ overdue: isOverdue }" @click="$emit('edit', task)">
-    <div class="progress-fill" :style="{ width: progressPct + '%' }" />
+  <div class="task-card" :class="{ overdue: isOverdue }">
+    <!-- Progress bar -->
+    <div
+      class="progress-fill"
+      :style="{ width: `${progressPct}%` }"
+    />
     <div class="task-body">
       <div class="task-header">
         <span class="task-id">{{ task.id }}</span>
@@ -9,18 +13,32 @@
           <span v-if="task.endDate" class="task-date" :class="{ overdue: isOverdue }">{{ task.endDate }}</span>
         </div>
       </div>
+
       <div class="task-title">{{ task.title }}</div>
+
+      <!-- Progress bar (subtasks) -->
       <div v-if="task.subtasks && task.subtasks.length > 0" class="task-progress">
         <div class="progress-track">
-          <div class="progress-fill" :style="{ width: progressPct + '%' }" />
+          <div class="progress-fill" :style="{ width: `${progressPct}%` }" />
         </div>
       </div>
+
+      <!-- Note preview -->
       <div v-if="task.note" class="task-note">{{ task.note }}</div>
+
+      <!-- Subtasks -->
       <div v-if="task.subtasks && task.subtasks.length > 0" class="subtasks-list">
-        <div v-for="subtask in visibleSubtasks" :key="subtask.id" class="subtask-item">
+        <div
+          v-for="subtask in visibleSubtasks"
+          :key="subtask.id"
+          class="subtask-item"
+        >
           <label class="checkbox-wrapper" @click.stop>
-            <input type="checkbox" :checked="subtask.completed"
-              @change.stop="$emit('subtask-toggled', task.id, subtask.id, !subtask.completed)" />
+            <input
+              type="checkbox"
+              :checked="subtask.completed"
+              @change.stop="$emit('subtask-toggled', task.id, subtask.id, !subtask.completed)"
+            />
             <span class="checkmark" />
           </label>
           <span class="subtask-title" :class="{ completed: subtask.completed }">{{ subtask.title }}</span>
@@ -38,7 +56,6 @@ import type { Task } from '../api/index'
 const props = defineProps<{ task: Task }>()
 
 defineEmits<{
-  'edit': [task: Task]
   'subtask-toggled': [taskId: string, subtaskId: string, completed: boolean]
 }>()
 
@@ -54,7 +71,7 @@ const isOverdue = computed(() => {
 
 const progressPct = computed(() => {
   if (!props.task.subtasks || props.task.subtasks.length === 0) return 0
-  const done = props.task.subtasks.filter((s: any) => s.completed).length
+  const done = props.task.subtasks.filter(s => s.completed).length
   return Math.round((done / props.task.subtasks.length) * 100)
 })
 
@@ -79,10 +96,13 @@ const hiddenSubtaskCount = computed(() =>
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
-.task-card.overdue { border-color: #ff4444; }
+.task-card.overdue {
+  border-color: #ff4444;
+}
 .progress-fill {
   position: absolute;
-  top: 0; left: 0;
+  top: 0;
+  left: 0;
   height: 100%;
   background: linear-gradient(135deg, var(--accent-subtle) 0%, transparent 80%);
   pointer-events: none;
@@ -136,7 +156,9 @@ const hiddenSubtaskCount = computed(() =>
   line-height: 1.4;
   word-break: break-word;
 }
-.task-progress { margin-top: 2px; }
+.task-progress {
+  margin-top: 2px;
+}
 .progress-track {
   height: 3px;
   background: var(--bg-accent);
@@ -200,10 +222,17 @@ const hiddenSubtaskCount = computed(() =>
   font-size: 9px;
   font-weight: 700;
 }
-.subtask-title { color: var(--text); line-height: 1.3; }
+.subtask-title {
+  color: var(--text);
+  line-height: 1.3;
+}
 .subtask-title.completed {
   text-decoration: line-through;
   color: var(--muted);
 }
-.subtask-more { font-size: 10px; color: var(--muted); padding-left: 20px; }
+.subtask-more {
+  font-size: 10px;
+  color: var(--muted);
+  padding-left: 20px;
+}
 </style>
