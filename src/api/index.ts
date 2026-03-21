@@ -133,7 +133,7 @@ function mapBackendTask(t: BackendTask): Task {
     endDate: t.end_date,
     completedAt: t.completed_at,
     note: t.note,
-    subtasks: t.subtasks.map(mapBackendSubtask),
+    subtasks: (t.subtasks || []).map(mapBackendSubtask),
   }
 }
 
@@ -176,14 +176,22 @@ export async function updateTask(
 }
 
 export async function updateTaskStatus(id: string, status: string): Promise<Task> {
-  const res = await fetch(`${API_BASE}/api/tasks/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const json: BackendTask = await res.json()
-  return mapBackendTask(json)
+  const url = `${API_BASE}/api/tasks/${id}/status`
+  console.log('[API] PATCH', url, { status })
+  try {
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    console.log('[API] status:', res.status, res.statusText)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const json: BackendTask = await res.json()
+    return mapBackendTask(json)
+  } catch (e) {
+    console.error('[API] full error:', e, (e as Error)?.message, (e as Error)?.cause)
+    throw e
+  }
 }
 
 export async function toggleSubtask(id: string, completed: boolean): Promise<Subtask> {

@@ -22,7 +22,6 @@
       <button
         class="tab"
         :class="{ active: currentTab === 'project' }"
-        :disabled="!projectId"
         @click="$emit('click:project')"
       >
         <span class="tab-icon">📋</span>

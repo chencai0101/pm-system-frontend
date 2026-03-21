@@ -189,9 +189,9 @@ async function onStatusChange(taskId: string, newStatus: TaskStatus) {
   try {
     await updateTaskStatus(taskId, newStatus)
     console.log('[STATUS_CHANGE] success')
-  } catch {
+  } catch (e) {
     task.status = oldStatus
-    console.error('[STATUS_CHANGE] failed')
+    console.error('[STATUS_CHANGE] failed:', e, (e as Error)?.message, (e as Error)?.cause)
   }
 }
 

@@ -23,11 +23,13 @@ import { ref, onMounted } from 'vue'
 import Header from './components/Header.vue'
 import DepartmentDashboard from './components/DepartmentDashboard.vue'
 import ProjectTaskDetail from './views/ProjectTaskDetail.vue'
+import { fetchProjects } from './api/index'
 
 type Tab = 'dashboard' | 'project'
 
 const currentTab = ref<Tab>('dashboard')
 const selectedProjectId = ref<string>('')
+const firstProjectId = ref<string>('')
 
 function parseHash(): { tab: Tab; projectId: string } {
   const hash = window.location.hash
@@ -44,17 +46,36 @@ function goToDashboard() {
   window.location.hash = '#/dashboard'
 }
 
-function goToProject(id?: string) {
+async function goToProject(id?: string) {
+  if (!id && !selectedProjectId.value && !firstProjectId.value) {
+    // No project selected yet - fetch the first project from API
+    try {
+      const res = await fetchProjects()
+      if (res.data.length > 0) {
+        id = res.data[0].id
+      } else {
+        return // no projects available
+      }
+    } catch {
+      return
+    }
+  }
   const targetId = id || selectedProjectId.value
-  if (!targetId) return
   currentTab.value = 'project'
   selectedProjectId.value = targetId
   window.location.hash = `#/project/${targetId}`
 }
 
 // From DepartmentDashboard: clicking a project card
-function onDashboardSelectProject(id: string) {
+async function onDashboardSelectProject(id: string) {
   console.log('[NAV] dashboard → project', id)
+  // Save first project id if not set
+  if (!firstProjectId.value) {
+    try {
+      const res = await fetchProjects()
+      if (res.data.length > 0) firstProjectId.value = res.data[0].id
+    } catch {}
+  }
   selectedProjectId.value = id
   currentTab.value = 'project'
   window.location.hash = `#/project/${id}`
