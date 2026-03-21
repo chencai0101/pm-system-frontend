@@ -7,7 +7,8 @@
         :key="project.id"
         :project="project"
         :selected="project.id === selectedId"
-        @click="$emit('select', project)"
+        :clickable="true"
+        @click="$emit('select', project.id)"
       />
     </div>
   </div>
@@ -23,7 +24,7 @@ defineProps<{
 }>()
 
 defineEmits<{
-  select: [project: Project]
+  select: [id: string]
 }>()
 </script>
 
@@ -63,10 +64,5 @@ defineEmits<{
 .project-list-items :deep(.project-card.selected) {
   border-left-color: var(--accent);
   transform: translateX(2px);
-}
-
-.project-list-items :deep(.project-card-bg),
-.project-list-items :deep(.project-card-fill) {
-  /* Smaller cards in sidebar */
 }
 </style>

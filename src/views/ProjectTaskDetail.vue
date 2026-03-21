@@ -77,6 +77,10 @@ import {
 
 const props = defineProps<{ projectId: string }>()
 
+const emit = defineEmits<{
+  'select-project': [id: string]
+}>()
+
 const projects = ref<Project[]>([])
 const tasks = ref<Task[]>([])
 const loading = ref(false)
@@ -125,8 +129,9 @@ async function loadTasks(projectId: string) {
   }
 }
 
-function onSelectProject(project: Project) {
-  window.location.hash = `#/project/${project.id}`
+// Called when user clicks a project in the left sidebar
+function onSelectProject(id: string) {
+  emit('select-project', id)
 }
 
 function onOpenEdit(task: Task) {
@@ -134,7 +139,6 @@ function onOpenEdit(task: Task) {
 }
 
 async function onTaskSaved(updated: Task) {
-  // Update local state
   const idx = tasks.value.findIndex(t => t.id === updated.id)
   if (idx !== -1) tasks.value[idx] = updated
   editingTask.value = null
@@ -147,17 +151,26 @@ function onTasksReordered(status: TaskStatus, reorderedTasks: Task[]) {
 }
 
 async function onStatusChange(taskId: string, newStatus: TaskStatus) {
-  // Optimistically update local state
+  // Find the task and its current status
   const task = tasks.value.find(t => t.id === taskId)
   if (!task) return
   const oldStatus = task.status
+
+  // Optimistic update: remove from old column, add to new column
+  const newTasks = tasks.value.filter(t => t.id !== taskId)
   task.status = newStatus
+  newTasks.push(task)
+  tasks.value = newTasks
 
   try {
     await updateTaskStatus(taskId, newStatus)
   } catch {
     // Rollback on failure
     task.status = oldStatus
+    tasks.value = tasks.value.filter(t => t.id !== taskId)
+    task.status = oldStatus
+    newTasks.push(task)
+    tasks.value = [...newTasks]
   }
 }
 

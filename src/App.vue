@@ -8,11 +8,12 @@
     />
     <DepartmentDashboard
       v-if="currentTab === 'dashboard'"
-      @select-project="onSelectProject"
+      @select-project="onDashboardSelectProject"
     />
     <ProjectTaskDetail
       v-else-if="currentTab === 'project'"
       :project-id="selectedProjectId"
+      @select-project="onProjectDetailSelectProject"
     />
   </div>
 </template>
@@ -38,15 +39,29 @@ function parseHash(): { tab: Tab; projectId: string } {
 }
 
 function goToDashboard() {
+  currentTab.value = 'dashboard'
+  selectedProjectId.value = ''
   window.location.hash = '#/dashboard'
 }
 
 function goToProject(id?: string) {
   const targetId = id || selectedProjectId.value
-  if (targetId) window.location.hash = `#/project/${targetId}`
+  if (!targetId) return
+  currentTab.value = 'project'
+  selectedProjectId.value = targetId
+  window.location.hash = `#/project/${targetId}`
 }
 
-function onSelectProject(id: string) {
+// From DepartmentDashboard: clicking a project card
+function onDashboardSelectProject(id: string) {
+  currentTab.value = 'project'
+  selectedProjectId.value = id
+  window.location.hash = `#/project/${id}`
+}
+
+// From ProjectTaskDetail: clicking a project in the left sidebar
+function onProjectDetailSelectProject(id: string) {
+  currentTab.value = 'project'
   selectedProjectId.value = id
   window.location.hash = `#/project/${id}`
 }
