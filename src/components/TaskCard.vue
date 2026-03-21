@@ -1,5 +1,5 @@
 <template>
-  <div class="task-card" :class="{ overdue: isOverdue }">
+  <div class="task-card" :class="{ overdue: isOverdue }" @click="$emit('edit', task)">
     <!-- Progress bar -->
     <div
       class="progress-fill"
@@ -56,6 +56,7 @@ import type { Task } from '../api/index'
 const props = defineProps<{ task: Task }>()
 
 defineEmits<{
+  'edit': [task: Task]
   'subtask-toggled': [taskId: string, subtaskId: string, completed: boolean]
 }>()
 
