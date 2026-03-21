@@ -60,7 +60,7 @@ function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean)
 
 <style scoped>
 .task-column {
-  flex: 1;
+  flex: 0 0 260px; /* 不拉伸，固定宽度由内容撑开高度 */
   min-width: 240px;
   max-width: 300px;
   display: flex;
@@ -113,7 +113,7 @@ function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean)
   overflow-y: auto;
   flex: 1;
   padding-right: 2px;
-  min-height: 80px;
+  min-height: 300px; /* 保证即使 0 个任务也有最小视觉高度 */
 }
 .task-slot {
   cursor: grab;

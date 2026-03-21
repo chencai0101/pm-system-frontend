@@ -26,10 +26,10 @@
       <!-- Note preview -->
       <div v-if="task.note" class="task-note">{{ task.note }}</div>
 
-      <!-- Subtasks -->
-      <div v-if="task.subtasks && task.subtasks.length > 0" class="subtasks-list">
+      <!-- Subtasks (always shown) -->
+      <div v-if="task.subtasks && task.subtasks.length > 0" class="subtasks-list subtasks-expanded">
         <div
-          v-for="subtask in visibleSubtasks"
+          v-for="subtask in task.subtasks"
           :key="subtask.id"
           class="subtask-item"
         >
@@ -37,13 +37,12 @@
             <input
               type="checkbox"
               :checked="subtask.completed"
-              @change.stop="$emit('subtask-toggled', task.id, subtask.id, !subtask.completed)"
+              @change.stop="onSubtaskToggle(subtask.id, !subtask.completed)"
             />
             <span class="checkmark" />
           </label>
           <span class="subtask-title" :class="{ completed: subtask.completed }">{{ subtask.title }}</span>
         </div>
-        <div v-if="hiddenSubtaskCount > 0" class="subtask-more">+{{ hiddenSubtaskCount }} more</div>
       </div>
     </div>
   </div>
@@ -52,13 +51,23 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Task } from '../api/index'
+import { updateSubtask } from '../api/index'
 
 const props = defineProps<{ task: Task }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'edit': [task: Task]
   'subtask-toggled': [taskId: string, subtaskId: string, completed: boolean]
 }>()
+
+async function onSubtaskToggle(subtaskId: string, completed: boolean) {
+  try {
+    await updateSubtask(subtaskId, { completed })
+    emit('subtask-toggled', props.task.id, subtaskId, completed)
+  } catch (err) {
+    console.error('[TaskCard] Failed to toggle subtask:', err)
+  }
+}
 
 const priorityLabel = computed(() => {
   const map: Record<string, string> = { high: '高', medium: '中', low: '低' }
@@ -75,12 +84,6 @@ const progressPct = computed(() => {
   const done = props.task.subtasks.filter(s => s.completed).length
   return Math.round((done / props.task.subtasks.length) * 100)
 })
-
-const MAX_VISIBLE = 3
-const visibleSubtasks = computed(() => props.task.subtasks.slice(0, MAX_VISIBLE))
-const hiddenSubtaskCount = computed(() =>
-  Math.max(0, props.task.subtasks.length - MAX_VISIBLE)
-)
 </script>
 
 <style scoped>
@@ -235,5 +238,40 @@ const hiddenSubtaskCount = computed(() =>
   font-size: 10px;
   color: var(--muted);
   padding-left: 20px;
+}
+.expand-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--accent);
+  font-family: inherit;
+  transition: color 0.15s;
+  margin-top: 4px;
+}
+.expand-btn:hover {
+  color: var(--text-strong);
+}
+.expand-label {
+  font-weight: 500;
+}
+.expand-arrow {
+  transition: transform 0.2s;
+  font-size: 10px;
+}
+.expand-btn.expanded .expand-arrow {
+  transform: rotate(180deg);
+}
+.subtasks-expanded {
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+.subtasks-expanded .subtask-item {
+  padding: 3px 0;
 }
 </style>

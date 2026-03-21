@@ -180,6 +180,18 @@ function onTasksReordered(_status: TaskStatus, _updated: Task[]) {
   // Currently no-op (column-level reorder without persistence)
 }
 
+async function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean) {
+  // Optimistic update: update local state immediately
+  const task = tasks.value.find(t => t.id === taskId)
+  if (!task) return
+  const subtask = task.subtasks.find(s => s.id === subtaskId)
+  if (!subtask) return
+  const oldCompleted = subtask.completed
+  subtask.completed = completed
+  // API call already done in TaskCard, just reflect result
+  // If API failed, TaskCard would have logged; still update optimistically
+}
+
 async function onStatusChange(taskId: string, newStatus: TaskStatus) {
   console.log('[STATUS_CHANGE]', taskId, '→', newStatus)
   const task = tasks.value.find(t => t.id === taskId)
@@ -271,6 +283,7 @@ onMounted(async () => {
   display: flex;
   gap: 16px;
   flex: 1;
+  align-items: flex-start; /* 每个列独立高度，不被最高列拉伸 */
   min-height: 0;
 }
 .loading-state {
