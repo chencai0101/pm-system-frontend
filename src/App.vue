@@ -54,8 +54,9 @@ function goToProject(id?: string) {
 
 // From DepartmentDashboard: clicking a project card
 function onDashboardSelectProject(id: string) {
-  currentTab.value = 'project'
+  console.log('[NAV] dashboard → project', id)
   selectedProjectId.value = id
+  currentTab.value = 'project'
   window.location.hash = `#/project/${id}`
 }
 

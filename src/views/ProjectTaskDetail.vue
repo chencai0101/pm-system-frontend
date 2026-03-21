@@ -151,10 +151,15 @@ function onTasksReordered(status: TaskStatus, reorderedTasks: Task[]) {
 }
 
 async function onStatusChange(taskId: string, newStatus: TaskStatus) {
+  console.log('[STATUS_CHANGE]', taskId, '→', newStatus)
   // Find the task and its current status
   const task = tasks.value.find(t => t.id === taskId)
-  if (!task) return
+  if (!task) {
+    console.log('[STATUS_CHANGE] task not found:', taskId)
+    return
+  }
   const oldStatus = task.status
+  console.log('[STATUS_CHANGE] oldStatus:', oldStatus)
 
   // Optimistic update: remove from old column, add to new column
   const newTasks = tasks.value.filter(t => t.id !== taskId)
@@ -164,7 +169,9 @@ async function onStatusChange(taskId: string, newStatus: TaskStatus) {
 
   try {
     await updateTaskStatus(taskId, newStatus)
-  } catch {
+    console.log('[STATUS_CHANGE] success')
+  } catch (e) {
+    console.log('[STATUS_CHANGE] FAILED:', e)
     // Rollback on failure
     task.status = oldStatus
     tasks.value = tasks.value.filter(t => t.id !== taskId)
