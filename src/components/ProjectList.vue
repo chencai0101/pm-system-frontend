@@ -32,22 +32,16 @@ defineEmits<{
 
 // Compute real progress per project from tasks
 const projectProgressMap = computed(() => {
-  const map: Record<string, number | undefined> = {}
+  const map: Record<string, number> = {}
   for (const p of props.projects) {
     if (!props.tasks || props.tasks.length === 0) {
-      // No tasks loaded yet — fall back to stored progress so all cards show real %
       map[p.id] = p.progress
       continue
     }
     const projectTasks = props.tasks.filter(t => t.projectId === p.id && !t.parentId)
     const total = projectTasks.length
-    if (total === 0) {
-      // tasks are loaded but belong to a different project — use stored progress
-      map[p.id] = p.progress
-    } else {
-      const done = projectTasks.filter(t => t.status === 'done').length
-      map[p.id] = done / total
-    }
+    const done = projectTasks.filter(t => t.status === 'done').length
+    map[p.id] = total === 0 ? 0 : done / total
   }
   return map
 })
