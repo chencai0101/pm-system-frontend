@@ -1,262 +1,238 @@
 <template>
-  <article class="task-card" @click="$emit('edit', task)">
-    <!-- Header row: id + title + priority + due -->
-    <div class="task-header">
-      <span class="task-id">{{ task.id }}</span>
-      <span class="task-title">{{ task.title }}</span>
-      <div class="task-tags">
-        <span class="priority-tag" :class="task.priority">{{ task.priority }}</span>
-        <span class="due-date" v-if="task.endDate">{{ formatDate(task.endDate) }}</span>
+  <div class="task-card" :class="{ overdue: isOverdue }">
+    <!-- Progress bar -->
+    <div
+      class="progress-fill"
+      :style="{ width: `${progressPct}%` }"
+    />
+    <div class="task-body">
+      <div class="task-header">
+        <span class="task-id">{{ task.id }}</span>
+        <div class="task-meta-right">
+          <span class="priority-badge" :class="task.priority">{{ priorityLabel }}</span>
+          <span v-if="task.endDate" class="task-date" :class="{ overdue: isOverdue }">{{ task.endDate }}</span>
+        </div>
       </div>
-    </div>
 
-    <!-- Note preview -->
-    <p v-if="task.note" class="task-note">{{ task.note }}</p>
+      <div class="task-title">{{ task.title }}</div>
 
-    <!-- Subtask progress -->
-    <div v-if="task.subtasks.length > 0" class="subtask-section">
-      <div class="subtask-progress">
+      <!-- Progress bar (subtasks) -->
+      <div v-if="task.subtasks && task.subtasks.length > 0" class="task-progress">
+        <div class="progress-track">
+          <div class="progress-fill" :style="{ width: `${progressPct}%` }" />
+        </div>
+      </div>
+
+      <!-- Note preview -->
+      <div v-if="task.note" class="task-note">{{ task.note }}</div>
+
+      <!-- Subtasks -->
+      <div v-if="task.subtasks && task.subtasks.length > 0" class="subtasks-list">
         <div
-          class="subtask-progress-fill"
-          :style="{ width: `${completedRatio * 100}%` }"
-        />
-      </div>
-      <div class="subtask-counts">
-        {{ completedCount }}/{{ task.subtasks.length }}
+          v-for="subtask in visibleSubtasks"
+          :key="subtask.id"
+          class="subtask-item"
+        >
+          <label class="checkbox-wrapper" @click.stop>
+            <input
+              type="checkbox"
+              :checked="subtask.completed"
+              @change.stop="$emit('subtask-toggled', task.id, subtask.id, !subtask.completed)"
+            />
+            <span class="checkmark" />
+          </label>
+          <span class="subtask-title" :class="{ completed: subtask.completed }">{{ subtask.title }}</span>
+        </div>
+        <div v-if="hiddenSubtaskCount > 0" class="subtask-more">+{{ hiddenSubtaskCount }} more</div>
       </div>
     </div>
-
-    <!-- Subtask list -->
-    <ul v-if="task.subtasks.length > 0" class="subtask-list">
-      <li
-        v-for="subtask in task.subtasks"
-        :key="subtask.id"
-        class="subtask-item"
-        @click.stop
-      >
-        <SubtaskCheckbox
-          :completed="subtask.completed"
-          @toggle="onSubtaskToggle(subtask.id, $event)"
-        />
-        <span :class="{ 'subtask-done': subtask.completed }">
-          {{ subtask.title }}
-        </span>
-      </li>
-    </ul>
-
-    <!-- Click hint -->
-    <div class="task-hint">点击编辑</div>
-  </article>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import SubtaskCheckbox from './SubtaskCheckbox.vue'
-import { toggleSubtask, updateTaskStatus, type Task } from '../api/index'
+import type { Task } from '../api/index'
 
 const props = defineProps<{ task: Task }>()
 
-const emit = defineEmits<{
-  edit: [task: Task]
+defineEmits<{
   'subtask-toggled': [taskId: string, subtaskId: string, completed: boolean]
 }>()
 
-const completedCount = computed(() =>
-  props.task.subtasks.filter(s => s.completed).length
+const priorityLabel = computed(() => {
+  const map: Record<string, string> = { high: '高', medium: '中', low: '低' }
+  return map[props.task.priority] || props.task.priority
+})
+
+const isOverdue = computed(() => {
+  if (!props.task.endDate || props.task.status === 'done') return false
+  return new Date(props.task.endDate) < new Date()
+})
+
+const progressPct = computed(() => {
+  if (!props.task.subtasks || props.task.subtasks.length === 0) return 0
+  const done = props.task.subtasks.filter(s => s.completed).length
+  return Math.round((done / props.task.subtasks.length) * 100)
+})
+
+const MAX_VISIBLE = 3
+const visibleSubtasks = computed(() => props.task.subtasks.slice(0, MAX_VISIBLE))
+const hiddenSubtaskCount = computed(() =>
+  Math.max(0, props.task.subtasks.length - MAX_VISIBLE)
 )
-const completedRatio = computed(() =>
-  props.task.subtasks.length > 0
-    ? completedCount.value / props.task.subtasks.length
-    : 0
-)
-
-function formatDate(date: string): string {
-  try {
-    const d = new Date(date)
-    return `${d.getMonth() + 1}/${d.getDate()}`
-  } catch {
-    return date
-  }
-}
-
-// Status order for auto-advance
-const STATUS_ORDER: Task['status'][] = ['open', 'in-progress', 'review', 'done']
-
-async function onSubtaskToggle(subtaskId: string, newCompleted: boolean) {
-  try {
-    await toggleSubtask(subtaskId, newCompleted)
-
-    // Update local task state
-    const subtask = props.task.subtasks.find(s => s.id === subtaskId)
-    if (subtask) subtask.completed = newCompleted
-
-    emit('subtask-toggled', props.task.id, subtaskId, newCompleted)
-
-    // Auto-advance if ALL subtasks completed
-    if (newCompleted) {
-      const allDone = props.task.subtasks.every(s => s.completed)
-      if (allDone) {
-        const currentIdx = STATUS_ORDER.indexOf(props.task.status)
-        if (currentIdx < STATUS_ORDER.length - 1) {
-          const nextStatus = STATUS_ORDER[currentIdx + 1]
-          const updated = await updateTaskStatus(props.task.id, nextStatus)
-          // Update local status
-          ;(props.task as Task).status = updated.status
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Failed to toggle subtask:', err)
-  }
-}
 </script>
 
 <style scoped>
 .task-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  transition: box-shadow 0.15s, transform 0.15s;
+  cursor: pointer;
+}
+.task-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+.task-card.overdue {
+  border-color: #ff4444;
+}
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent-subtle) 0%, transparent 80%);
+  pointer-events: none;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+.task-body {
+  position: relative;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  cursor: pointer;
-  transition: box-shadow 0.15s, border-color 0.15s;
-  box-shadow: var(--shadow-sm);
+  gap: 6px;
 }
-
-.task-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: var(--border-strong);
-}
-
 .task-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
-
 .task-id {
   font-size: 11px;
   font-family: "JetBrains Mono", monospace;
   color: var(--muted);
-  flex-shrink: 0;
-  padding-top: 2px;
-}
-
-.task-title {
-  font-size: 14px;
   font-weight: 600;
-  color: var(--text-strong);
-  line-height: 1.4;
-  flex: 1;
 }
-
-.task-tags {
+.task-meta-right {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
 }
-
-.priority-tag {
+.priority-badge {
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
   padding: 2px 7px;
   border-radius: var(--radius-full);
-  border: 1px solid transparent;
+  text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-
-.priority-tag.high {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.25);
-}
-
-.priority-tag.medium {
-  color: #f0c000;
-  background: rgba(240, 192, 0, 0.1);
-  border-color: rgba(240, 192, 0, 0.25);
-}
-
-.priority-tag.low {
-  color: #71717a;
-  background: rgba(113, 113, 122, 0.1);
-  border-color: rgba(113, 113, 122, 0.25);
-}
-
-.due-date {
+.priority-badge.high { background: #ff444433; color: #ff4444; }
+.priority-badge.medium { background: #ffaa4433; color: #ff8800; }
+.priority-badge.low { background: var(--bg-accent); color: var(--muted); }
+.task-date {
   font-size: 11px;
   font-family: "JetBrains Mono", monospace;
   color: var(--muted);
 }
-
+.task-date.overdue { color: #ff4444; }
+.task-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-strong);
+  line-height: 1.4;
+  word-break: break-word;
+}
+.task-progress {
+  margin-top: 2px;
+}
+.progress-track {
+  height: 3px;
+  background: var(--bg-accent);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.progress-track .progress-fill {
+  position: relative;
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+  transition: width 0.3s;
+}
 .task-note {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.4;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-
-.subtask-section {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.subtask-progress {
-  flex: 1;
-  height: 4px;
-  background: var(--progress-bg);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.subtask-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), #ff8080);
-  border-radius: 2px;
-  transition: width 0.3s var(--ease-out);
-}
-
-.subtask-counts {
-  font-size: 10px;
-  font-family: "JetBrains Mono", monospace;
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.subtask-list {
-  list-style: none;
+.subtasks-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-left: 4px;
+  margin-top: 4px;
 }
-
 .subtask-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--text);
-  line-height: 1.4;
+  font-size: 11px;
 }
-
-.subtask-done {
+.checkbox-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.checkbox-wrapper input { display: none; }
+.checkmark {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  transition: all 0.15s;
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.checkbox-wrapper input:checked + .checkmark {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.checkbox-wrapper input:checked + .checkmark::after {
+  content: '✓';
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+}
+.subtask-title {
+  color: var(--text);
+  line-height: 1.3;
+}
+.subtask-title.completed {
   text-decoration: line-through;
   color: var(--muted);
 }
-
-.task-hint {
+.subtask-more {
   font-size: 10px;
-  color: var(--border-strong);
-  text-align: right;
-  margin-top: 2px;
+  color: var(--muted);
+  padding-left: 20px;
 }
 </style>
