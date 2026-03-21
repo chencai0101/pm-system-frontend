@@ -84,11 +84,14 @@ const props = defineProps<{ projectId: string }>()
 const emit = defineEmits<{ 'select-project': [id: string] }>()
 
 const projects = ref<Project[]>([])
-const tasks = ref<Task[]>([])
+const tasksByProject = ref<Record<string, Task[]>>({})
 const loading = ref(false)
 const error = ref<string | null>(null)
 const editingTask = ref<Task | null>(null)
 const boardRef = ref<HTMLElement | null>(null)
+
+// tasks for the currently selected project (convenience accessor)
+const tasks = computed(() => tasksByProject.value[props.projectId] ?? [])
 
 const columns: { key: TaskStatus; label: string }[] = [
   { key: 'open', label: 'Open' },
@@ -178,9 +181,11 @@ function onOpenEdit(task: Task) {
   editingTask.value = { ...task, subtasks: [...task.subtasks] }
 }
 
-async function onTaskSaved(updated: Task) {
-  const idx = tasks.value.findIndex(t => t.id === updated.id)
-  if (idx !== -1) tasks.value[idx] = updated
+async function onTaskSaved(updated: Task & { subtasks?: any[] }) {
+  const projectTasks = tasksByProject.value[props.projectId]
+  if (!projectTasks) return
+  const idx = projectTasks.findIndex(t => t.id === updated.id)
+  if (idx !== -1) tasksByProject.value[props.projectId][idx] = updated
   editingTask.value = null
 }
 
@@ -189,32 +194,39 @@ function onTasksReordered(_status: TaskStatus, _updated: Task[]) {
 }
 
 async function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean) {
-  // Optimistic update: update local state immediately
-  const task = tasks.value.find(t => t.id === taskId)
+  const task = tasksByProject.value[props.projectId]?.find(t => t.id === taskId)
   if (!task) return
   const subtask = task.subtasks.find(s => s.id === subtaskId)
   if (!subtask) return
-  const oldCompleted = subtask.completed
   subtask.completed = completed
-  // API call already done in TaskCard, just reflect result
-  // If API failed, TaskCard would have logged; still update optimistically
+  recalcProjectProgress(props.projectId)
 }
 
 async function onStatusChange(taskId: string, newStatus: TaskStatus) {
   console.log('[STATUS_CHANGE]', taskId, '→', newStatus)
-  const task = tasks.value.find(t => t.id === taskId)
+  const task = tasksByProject.value[props.projectId]?.find(t => t.id === taskId)
   if (!task) return
   const oldStatus = task.status
-  // Optimistic update
   task.status = newStatus
 
   try {
     await updateTaskStatus(taskId, newStatus)
     console.log('[STATUS_CHANGE] success')
+    // Recalculate progress for the current project and sync to sidebar
+    recalcProjectProgress(props.projectId)
   } catch (e) {
     task.status = oldStatus
     console.error('[STATUS_CHANGE] failed:', e, (e as Error)?.message, (e as Error)?.cause)
   }
+}
+
+function recalcProjectProgress(projectId: string) {
+  const pts = tasksByProject.value[projectId] ?? []
+  const total = pts.filter(t => !t.parentId).length
+  const done = pts.filter(t => !t.parentId && t.status === 'done').length
+  const progress = total === 0 ? 0 : Math.round((done / total) * 100)
+  const proj = projects.value.find(p => p.id === projectId)
+  if (proj) proj.progress = progress
 }
 
 // --- Data loading ---
@@ -228,7 +240,9 @@ async function loadTasks(projectId: string) {
   error.value = null
   try {
     const res = await fetchTasksByProject(projectId)
-    tasks.value = res.data
+    tasksByProject.value[projectId] = res.data
+    // Sync fresh progress to sidebar so cached projects always show correct %
+    recalcProjectProgress(projectId)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '未知错误'
   } finally {
@@ -238,7 +252,6 @@ async function loadTasks(projectId: string) {
 
 watch(() => props.projectId, (id) => {
   if (id) loadTasks(id)
-  else tasks.value = []
 }, { immediate: true })
 
 onMounted(async () => {
