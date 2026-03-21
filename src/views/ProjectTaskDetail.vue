@@ -11,7 +11,13 @@
       </aside>
 
       <!-- Right: Task Board -->
-      <main class="board-area">
+      <main
+        class="board-area"
+        ref="boardRef"
+        @dragover.prevent="onBoardDragOver"
+        @drop.prevent="onBoardDrop"
+        @dragleave="onBoardDragLeave"
+      >
         <template v-if="selectedProject">
           <div class="board-header">
             <div class="board-project-name">{{ selectedProject.name }}</div>
@@ -22,13 +28,8 @@
             </div>
           </div>
 
-          <div v-if="loading" class="loading-state">
-            <span>加载中…</span>
-          </div>
-          <div v-else-if="error" class="empty-state">
-            <span class="empty-icon">⚠️</span>
-            <span>{{ error }}</span>
-          </div>
+          <div v-if="loading" class="loading-state"><span>加载中…</span></div>
+          <div v-else-if="error" class="empty-state"><span class="empty-icon">⚠️</span><span>{{ error }}</span></div>
           <div v-else class="board-columns">
             <TaskColumn
               v-for="col in columns"
@@ -38,6 +39,7 @@
               @open-edit="onOpenEdit"
               @tasks-reordered="(updated) => onTasksReordered(col.key, updated)"
               @status-change="onStatusChange"
+              @drag-start="onTaskDragStart"
             />
           </div>
         </template>
@@ -51,7 +53,6 @@
       </main>
     </div>
 
-    <!-- Task Edit Modal -->
     <TaskEditModal
       v-if="editingTask"
       :task="editingTask"
@@ -77,15 +78,14 @@ import {
 
 const props = defineProps<{ projectId: string }>()
 
-const emit = defineEmits<{
-  'select-project': [id: string]
-}>()
+const emit = defineEmits<{ 'select-project': [id: string] }>()
 
 const projects = ref<Project[]>([])
 const tasks = ref<Task[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 const editingTask = ref<Task | null>(null)
+const boardRef = ref<HTMLElement | null>(null)
 
 const columns: { key: TaskStatus; label: string }[] = [
   { key: 'open', label: 'Open' },
@@ -94,12 +94,14 @@ const columns: { key: TaskStatus; label: string }[] = [
   { key: 'done', label: 'Done' },
 ]
 
+// --- Drag state (module-level, shared across all columns) ---
+// Reference: FlowBoard uses a module-level `draggedId` variable
+let dragTaskId: string | null = null
+let dragSourceStatus: TaskStatus | null = null
+
 const tasksByStatus = computed(() => {
   const map: Record<TaskStatus, Task[]> = {
-    'open': [],
-    'in-progress': [],
-    'review': [],
-    'done': [],
+    'open': [], 'in-progress': [], 'review': [], 'done': [],
   }
   for (const t of tasks.value) {
     if (map[t.status]) map[t.status].push(t)
@@ -111,6 +113,89 @@ const selectedProject = computed(() =>
   projects.value.find(p => p.id === props.projectId) ?? null
 )
 
+// --- Drag handlers (board-level delegation, like FlowBoard) ---
+function onBoardDragOver(e: DragEvent) {
+  e.preventDefault()
+  const col = (e.target as HTMLElement).closest('.task-column') as HTMLElement | null
+  if (!col) return
+  const targetStatus = col.dataset.status as TaskStatus
+  if (!targetStatus) return
+  // Highlight the column
+  document.querySelectorAll('.task-column').forEach(c => c.classList.remove('drag-over'))
+  col.classList.add('drag-over')
+}
+
+function onBoardDragLeave(e: DragEvent) {
+  const col = (e.target as HTMLElement).closest('.task-column')
+  if (col && !(col as HTMLElement).contains(e.relatedTarget as Node | null)) {
+    col.classList.remove('drag-over')
+  }
+}
+
+function onBoardDrop(e: DragEvent) {
+  e.preventDefault()
+  document.querySelectorAll('.task-column').forEach(c => c.classList.remove('drag-over'))
+  if (!dragTaskId || !dragSourceStatus) return
+
+  const col = (e.target as HTMLElement).closest('.task-column') as HTMLElement | null
+  if (!col) return
+
+  const targetStatus = col.dataset.status as TaskStatus
+  if (!targetStatus || targetStatus === dragSourceStatus) {
+    dragTaskId = null
+    dragSourceStatus = null
+    return
+  }
+
+  console.log('[BOARD_DROP] cross-column', dragTaskId, 'from', dragSourceStatus, '→', targetStatus)
+  onStatusChange(dragTaskId, targetStatus)
+  dragTaskId = null
+  dragSourceStatus = null
+}
+
+function onTaskDragStart(taskId: string, sourceStatus: TaskStatus) {
+  dragTaskId = taskId
+  dragSourceStatus = sourceStatus
+  console.log('[BOARD] drag-start', taskId, 'from', sourceStatus)
+}
+
+// --- Task actions ---
+function onSelectProject(id: string) {
+  emit('select-project', id)
+}
+
+function onOpenEdit(task: Task) {
+  editingTask.value = { ...task, subtasks: [...task.subtasks] }
+}
+
+async function onTaskSaved(updated: Task) {
+  const idx = tasks.value.findIndex(t => t.id === updated.id)
+  if (idx !== -1) tasks.value[idx] = updated
+  editingTask.value = null
+}
+
+function onTasksReordered(_status: TaskStatus, _updated: Task[]) {
+  // Currently no-op (column-level reorder without persistence)
+}
+
+async function onStatusChange(taskId: string, newStatus: TaskStatus) {
+  console.log('[STATUS_CHANGE]', taskId, '→', newStatus)
+  const task = tasks.value.find(t => t.id === taskId)
+  if (!task) return
+  const oldStatus = task.status
+  // Optimistic update
+  task.status = newStatus
+
+  try {
+    await updateTaskStatus(taskId, newStatus)
+    console.log('[STATUS_CHANGE] success')
+  } catch {
+    task.status = oldStatus
+    console.error('[STATUS_CHANGE] failed')
+  }
+}
+
+// --- Data loading ---
 async function loadProjects() {
   const res = await fetchProjects()
   projects.value = res.data
@@ -129,67 +214,10 @@ async function loadTasks(projectId: string) {
   }
 }
 
-// Called when user clicks a project in the left sidebar
-function onSelectProject(id: string) {
-  emit('select-project', id)
-}
-
-function onOpenEdit(task: Task) {
-  editingTask.value = { ...task, subtasks: [...task.subtasks] }
-}
-
-async function onTaskSaved(updated: Task) {
-  const idx = tasks.value.findIndex(t => t.id === updated.id)
-  if (idx !== -1) tasks.value[idx] = updated
-  editingTask.value = null
-}
-
-function onTasksReordered(status: TaskStatus, reorderedTasks: Task[]) {
-  // Replace the tasks for this status with the reordered list
-  const others = tasks.value.filter(t => t.status !== status)
-  tasks.value = [...others, ...reorderedTasks]
-}
-
-async function onStatusChange(taskId: string, newStatus: TaskStatus) {
-  console.log('[STATUS_CHANGE]', taskId, '→', newStatus)
-  // Find the task and its current status
-  const task = tasks.value.find(t => t.id === taskId)
-  if (!task) {
-    console.log('[STATUS_CHANGE] task not found:', taskId)
-    return
-  }
-  const oldStatus = task.status
-  console.log('[STATUS_CHANGE] oldStatus:', oldStatus)
-
-  // Optimistic update: remove from old column, add to new column
-  const newTasks = tasks.value.filter(t => t.id !== taskId)
-  task.status = newStatus
-  newTasks.push(task)
-  tasks.value = newTasks
-
-  try {
-    await updateTaskStatus(taskId, newStatus)
-    console.log('[STATUS_CHANGE] success')
-  } catch (e) {
-    console.log('[STATUS_CHANGE] FAILED:', e)
-    // Rollback on failure
-    task.status = oldStatus
-    tasks.value = tasks.value.filter(t => t.id !== taskId)
-    task.status = oldStatus
-    newTasks.push(task)
-    tasks.value = [...newTasks]
-  }
-}
-
-// Load tasks when projectId changes
-watch(
-  () => props.projectId,
-  (id) => {
-    if (id) loadTasks(id)
-    else tasks.value = []
-  },
-  { immediate: true }
-)
+watch(() => props.projectId, (id) => {
+  if (id) loadTasks(id)
+  else tasks.value = []
+}, { immediate: true })
 
 onMounted(async () => {
   await loadProjects()
@@ -204,7 +232,6 @@ onMounted(async () => {
   overflow: hidden;
   height: calc(100vh - 56px);
 }
-
 .sidebar {
   width: 240px;
   flex-shrink: 0;
@@ -212,7 +239,6 @@ onMounted(async () => {
   overflow-y: auto;
   background: var(--card);
 }
-
 .board-area {
   flex: 1;
   overflow-x: auto;
@@ -222,7 +248,6 @@ onMounted(async () => {
   flex-direction: column;
   gap: 16px;
 }
-
 .board-header {
   display: flex;
   align-items: baseline;
@@ -230,32 +255,22 @@ onMounted(async () => {
   margin-bottom: 8px;
   flex-shrink: 0;
 }
-
 .board-project-name {
   font-size: 20px;
   font-weight: 800;
   color: var(--text-strong);
 }
-
-.board-project-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .progress-label {
   font-size: 13px;
   color: var(--muted);
   font-family: "JetBrains Mono", monospace;
 }
-
 .board-columns {
   display: flex;
   gap: 16px;
   flex: 1;
   min-height: 0;
 }
-
 .loading-state {
   display: flex;
   align-items: center;
@@ -264,7 +279,6 @@ onMounted(async () => {
   color: var(--muted);
   font-size: 14px;
 }
-
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -275,9 +289,5 @@ onMounted(async () => {
   font-size: 14px;
   gap: 8px;
 }
-
-.empty-icon {
-  font-size: 40px;
-  opacity: 0.3;
-}
+.empty-icon { font-size: 40px; opacity: 0.3; }
 </style>
