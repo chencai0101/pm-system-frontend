@@ -175,6 +175,37 @@ export async function updateTask(
   return mapBackendTask(json)
 }
 
+export async function createSubtask(taskId: string, title: string): Promise<Task> {
+  const res = await fetch(`${API_BASE}/api/tasks/${taskId}/subtasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json = await res.json()
+  return mapBackendTask(json.data)
+}
+
+export async function updateSubtask(subtaskId: string, data: { title?: string; completed?: boolean }): Promise<Task> {
+  const res = await fetch(`${API_BASE}/api/subtasks/${subtaskId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json = await res.json()
+  return mapBackendTask(json.data)
+}
+
+export async function deleteSubtask(subtaskId: string): Promise<Task> {
+  const res = await fetch(`${API_BASE}/api/subtasks/${subtaskId}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json = await res.json()
+  return json.data ? mapBackendTask(json.data) : null
+}
+
 export async function updateTaskStatus(id: string, status: string): Promise<Task> {
   const url = `${API_BASE}/api/tasks/${id}/status`
   console.log('[API] PATCH', url, { status })
