@@ -27,6 +27,13 @@
                 进度 {{ realProgress }}%
               </span>
               <button class="btn-add-task" @click="onAddTask">+ 任务</button>
+              <button class="btn-delete-project" title="删除项目" @click="confirmDeleteProject">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -64,6 +71,26 @@
       @close="editingTask = null; editMode = 'edit'"
       @saved="onTaskSaved"
     />
+
+    <!-- Delete project confirm dialog -->
+    <div v-if="deleteDialogVisible" class="modal-overlay" @click.self="deleteDialogVisible = false">
+      <div class="dialog">
+        <div class="dialog-header">
+          <span class="dialog-title">确认删除项目</span>
+          <button class="close-btn" @click="deleteDialogVisible = false">✕</button>
+        </div>
+        <div class="dialog-body">
+          <p>确定要删除项目 <strong>{{ selectedProject?.name }}</strong> 吗？此操作不可恢复。</p>
+          <p v-if="deleteError" class="dialog-error">{{ deleteError }}</p>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-cancel" @click="deleteDialogVisible = false">取消</button>
+          <button class="btn-danger" @click="executeDeleteProject" :disabled="deleting">
+            {{ deleting ? '删除中…' : '确认删除' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -76,6 +103,7 @@ import {
   fetchProjects,
   fetchTasksByProject,
   updateTaskStatus,
+  deleteProject,
   type Project,
   type Task,
   type TaskStatus,
@@ -91,6 +119,33 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 const editingTask = ref<Task | null>(null)
 const editMode = ref<'add' | 'edit'>('edit')
+
+// Delete project dialog
+const deleteDialogVisible = ref(false)
+const deleteError = ref('')
+const deleting = ref(false)
+
+function confirmDeleteProject() {
+  deleteError.value = ''
+  deleteDialogVisible.value = true
+}
+
+async function executeDeleteProject() {
+  if (!props.projectId) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await deleteProject(props.projectId)
+    deleteDialogVisible.value = false
+    // Navigate back to dashboard
+    window.location.hash = '#/dashboard'
+    window.dispatchEvent(new CustomEvent('navigate-dashboard'))
+  } catch (e: any) {
+    deleteError.value = e.message || '删除失败'
+  } finally {
+    deleting.value = false
+  }
+}
 
 // tasks for the currently selected project (convenience accessor)
 const tasks = computed(() => tasksByProject.value[props.projectId] ?? [])
@@ -333,6 +388,25 @@ onMounted(async () => {
   transition: opacity 0.15s;
 }
 .btn-add-task:hover { opacity: 0.85; }
+.btn-delete-project {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: 4px;
+}
+.btn-delete-project:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: #fee2e2;
+}
 .board-columns {
   display: flex;
   gap: 16px;
@@ -359,4 +433,94 @@ onMounted(async () => {
   gap: 8px;
 }
 .empty-icon { font-size: 40px; opacity: 0.3; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+.dialog {
+  width: 380px;
+  max-width: 90vw;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+}
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.dialog-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+.close-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.close-btn:hover { background: var(--bg-accent); color: var(--text); }
+.dialog-body {
+  padding: 20px;
+}
+.dialog-body p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+}
+.dialog-error {
+  color: #ef4444;
+  font-size: 12px;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+.btn-cancel {
+  padding: 7px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-cancel:hover { background: var(--bg-accent); }
+.btn-danger {
+  padding: 7px 16px;
+  background: #ef4444;
+  border: none;
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-danger:hover { opacity: 0.9; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

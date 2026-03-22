@@ -157,6 +157,12 @@ export async function updateProject(
   return mapBackendProject(json.data)
 }
 
+export async function deleteProject(projectId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/projects/${projectId}`, { method: 'DELETE' })
+  const json: { data: any; error: string | null } = await res.json()
+  if (json.error) throw new Error(json.error)
+}
+
 export async function createProject(data: {
   name: string
   owner: string

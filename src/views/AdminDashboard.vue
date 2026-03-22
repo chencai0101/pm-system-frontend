@@ -17,6 +17,7 @@
     <!-- Content -->
     <div class="admin-content">
       <MembersPage v-if="currentTab === 'members'" />
+      <ProjectsAdminPage v-else-if="currentTab === 'projects'" />
       <div v-else-if="currentTab === 'permissions'" class="placeholder">
         <span class="placeholder-icon">🔐</span>
         <h2>权限管理</h2>
@@ -34,14 +35,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import MembersPage from './admin/MembersPage.vue'
+import ProjectsAdminPage from './admin/ProjectsAdminPage.vue'
 
 const tabs = [
   { key: 'members', label: '人员管理', icon: '👤' },
+  { key: 'projects', label: '项目管理', icon: '📁' },
   { key: 'permissions', label: '权限管理', icon: '🔐' },
   { key: 'tags', label: '标签管理', icon: '🏷️' },
 ] as const
 
-const currentTab = ref<'members' | 'permissions' | 'tags'>('members')
+const currentTab = ref<'members' | 'projects' | 'permissions' | 'tags'>('members')
 </script>
 
 <style scoped>

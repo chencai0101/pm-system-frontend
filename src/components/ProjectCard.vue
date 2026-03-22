@@ -26,6 +26,20 @@
         </svg>
       </button>
 
+      <!-- Delete button -->
+      <button
+        v-if="showDeleteButton"
+        class="delete-btn"
+        title="删除项目"
+        @click.stop="emit('delete', project)"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+        </svg>
+      </button>
+
       <div class="project-name">{{ project.name }}</div>
 
       <div class="project-meta">
@@ -62,11 +76,13 @@ const props = defineProps<{
   clickable?: boolean
   computedProgress?: number
   showEditButton?: boolean
+  showDeleteButton?: boolean
 }>()
 
 const emit = defineEmits<{
   click: []
   edit: [project: Project]
+  delete: [project: Project]
 }>()
 
 // Derive status dynamically from real completion percentage
@@ -101,10 +117,10 @@ const effectiveStatus = computed(() => {
 .project-card-body {
   position: relative;
 }
-.edit-btn {
+.edit-btn,
+.delete-btn {
   position: absolute;
   top: 0;
-  right: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -117,12 +133,16 @@ const effectiveStatus = computed(() => {
   cursor: pointer;
   transition: color 0.15s, background 0.15s;
   padding: 0;
+  z-index: 2;
 }
+.edit-btn { right: 0; }
+.delete-btn { right: 26px; }
 .edit-btn:hover {
   color: var(--accent);
   background: var(--accent-subtle);
 }
-.edit-btn:active {
-  transform: scale(0.92);
+.delete-btn:hover {
+  color: #ef4444;
+  background: #fee2e2;
 }
 </style>
