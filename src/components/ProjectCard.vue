@@ -13,6 +13,18 @@
 
     <!-- Card content -->
     <div class="project-card-body">
+      <!-- Edit button (top-right) -->
+      <button
+        class="edit-btn"
+        title="编辑项目"
+        @click.stop="emit('edit', project)"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+
       <div class="project-name">{{ project.name }}</div>
 
       <div class="project-meta">
@@ -52,6 +64,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   click: []
+  edit: [project: Project]
 }>()
 
 // Derive status dynamically from real completion percentage
@@ -62,3 +75,33 @@ const effectiveStatus = computed(() => {
   return '未开始'
 })
 </script>
+
+<style scoped>
+.project-card-body {
+  position: relative;
+}
+.edit-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  padding: 0;
+}
+.edit-btn:hover {
+  color: var(--accent);
+  background: var(--accent-subtle);
+}
+.edit-btn:active {
+  transform: scale(0.92);
+}
+</style>

@@ -141,6 +141,22 @@ function mapBackendTask(t: BackendTask | null): Task {
   }
 }
 
+export async function updateProject(
+  id: string,
+  data: { name?: string; owner?: string; start_date?: string; end_date?: string; description?: string; status?: string }
+): Promise<Project> {
+  const res = await fetch(`${API_BASE}/api/projects/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const json: any = await res.json()
+  if (!res.ok || json.error) {
+    throw new Error(json.error || `HTTP ${res.status}`)
+  }
+  return mapBackendProject(json.data)
+}
+
 export async function createProject(data: {
   name: string
   owner: string

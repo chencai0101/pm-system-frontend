@@ -18,6 +18,7 @@
           :clickable="true"
           :computed-progress="projectProgressMap[project.id]"
           @click="onCardClick(project.id)"
+          @edit="onProjectEdit(project)"
         />
       </div>
 
@@ -25,6 +26,13 @@
         v-if="showCreateModal"
         @close="showCreateModal = false"
         @created="onProjectCreated"
+      />
+
+      <ProjectEditModal
+        v-if="showEditModal && editingProject"
+        :project="editingProject"
+        @close="showEditModal = false"
+        @updated="onProjectUpdated"
       />
     </main>
   </div>
@@ -34,6 +42,7 @@
 import { ref, computed, onMounted } from 'vue'
 import ProjectCard from './ProjectCard.vue'
 import ProjectCreateModal from './ProjectCreateModal.vue'
+import ProjectEditModal from './ProjectEditModal.vue'
 import { fetchProjects, fetchTasksByProject, type Project, type Task } from '../api/index'
 
 const projects = ref<Project[]>([])
@@ -41,6 +50,8 @@ const tasksByProject = ref<Record<string, Task[]>>({})
 const loading = ref(true)
 const error = ref<string | null>(null)
 const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const editingProject = ref<Project | null>(null)
 
 const emit = defineEmits<{ 'select-project': [id: string] }>()
 
@@ -89,6 +100,17 @@ async function loadProjects() {
 
 function onProjectCreated() {
   showCreateModal.value = false
+  loadProjects()
+}
+
+function onProjectEdit(project: Project) {
+  editingProject.value = project
+  showEditModal.value = true
+}
+
+function onProjectUpdated() {
+  showEditModal.value = false
+  editingProject.value = null
   loadProjects()
 }
 
