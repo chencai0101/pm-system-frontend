@@ -23,25 +23,27 @@ import { computed } from 'vue'
 const props = defineProps<{
   projects: Project[]
   selectedId: string
-  tasks?: Task[]
+  tasksByProject?: Record<string, Task[]>
 }>()
 
 defineEmits<{
   select: [id: string]
 }>()
 
-// Compute real progress per project from tasks
+// Compute real progress per project from ALL cached tasks (tasksByProject has all projects)
 const projectProgressMap = computed(() => {
-  const map: Record<string, number> = {}
+  const map: Record<string, number | undefined> = {}
   for (const p of props.projects) {
-    if (!props.tasks || props.tasks.length === 0) {
+    const pts = props.tasksByProject?.[p.id]
+    if (!pts || pts.length === 0) {
+      // No tasks loaded yet — use stored progress (last known correct value)
       map[p.id] = p.progress
       continue
     }
-    const projectTasks = props.tasks.filter(t => t.projectId === p.id && !t.parentId)
-    const total = projectTasks.length
-    const done = projectTasks.filter(t => t.status === 'done').length
-    map[p.id] = total === 0 ? 0 : done / total
+    const topTasks = pts.filter(t => !t.parentId)
+    const total = topTasks.length
+    const done = topTasks.filter(t => t.status === 'done').length
+    map[p.id] = total === 0 ? p.progress : done / total
   }
   return map
 })

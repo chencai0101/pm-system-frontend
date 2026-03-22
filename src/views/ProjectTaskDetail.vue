@@ -6,7 +6,7 @@
         <ProjectList
           :projects="projects"
           :selected-id="projectId"
-          :tasks="tasks"
+          :tasks-by-project="tasksByProject"
           @select="onSelectProject"
         />
       </aside>
@@ -84,10 +84,13 @@ const props = defineProps<{ projectId: string }>()
 const emit = defineEmits<{ 'select-project': [id: string] }>()
 
 const projects = ref<Project[]>([])
-const tasks = ref<Task[]>([])
+const tasksByProject = ref<Record<string, Task[]>>({})
 const loading = ref(false)
 const error = ref<string | null>(null)
 const editingTask = ref<Task | null>(null)
+
+// tasks for the currently selected project (convenience accessor)
+const tasks = computed(() => tasksByProject.value[props.projectId] ?? [])
 const boardRef = ref<HTMLElement | null>(null)
 
 const columns: { key: TaskStatus; label: string }[] = [
@@ -179,8 +182,10 @@ function onOpenEdit(task: Task) {
 }
 
 async function onTaskSaved(updated: Task) {
-  const idx = tasks.value.findIndex(t => t.id === updated.id)
-  if (idx !== -1) tasks.value[idx] = updated
+  const pts = tasksByProject.value[props.projectId]
+  if (!pts) return
+  const idx = pts.findIndex(t => t.id === updated.id)
+  if (idx !== -1) tasksByProject.value[props.projectId][idx] = updated
   editingTask.value = null
 }
 
@@ -189,61 +194,72 @@ function onTasksReordered(_status: TaskStatus, _updated: Task[]) {
 }
 
 async function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean) {
-  // Optimistic update: update local state immediately
-  const task = tasks.value.find(t => t.id === taskId)
+  const task = tasksByProject.value[props.projectId]?.find(t => t.id === taskId)
   if (!task) return
   const subtask = task.subtasks.find(s => s.id === subtaskId)
   if (!subtask) return
-  const oldCompleted = subtask.completed
   subtask.completed = completed
-  // API call already done in TaskCard, just reflect result
-  // If API failed, TaskCard would have logged; still update optimistically
+  recalcProjectProgress(props.projectId)
 }
 
 async function onStatusChange(taskId: string, newStatus: TaskStatus) {
   console.log('[STATUS_CHANGE]', taskId, '→', newStatus)
-  const task = tasks.value.find(t => t.id === taskId)
+  const task = tasksByProject.value[props.projectId]?.find(t => t.id === taskId)
   if (!task) return
   const oldStatus = task.status
-  // Optimistic update
   task.status = newStatus
 
   try {
     await updateTaskStatus(taskId, newStatus)
     console.log('[STATUS_CHANGE] success')
+    recalcProjectProgress(props.projectId)
   } catch (e) {
     task.status = oldStatus
     console.error('[STATUS_CHANGE] failed:', e, (e as Error)?.message, (e as Error)?.cause)
   }
 }
 
+function recalcProjectProgress(projectId: string) {
+  const pts = tasksByProject.value[projectId] ?? []
+  const total = pts.filter(t => !t.parentId).length
+  const done = pts.filter(t => !t.parentId && t.status === 'done').length
+  // Store as decimal (0-1) to stay consistent with API format and ProjectCard expectations
+  const progress = total === 0 ? 0 : done / total
+  const proj = projects.value.find(p => p.id === projectId)
+  if (proj) proj.progress = progress
+}
+
 // --- Data loading ---
 async function loadProjects() {
   const res = await fetchProjects()
   projects.value = res.data
+  // Preload tasks for ALL projects so sidebar progress is always correct
+  await Promise.allSettled(
+    res.data.map(p => loadTasks(p.id, true))
+  )
 }
 
-async function loadTasks(projectId: string) {
-  loading.value = true
-  error.value = null
+async function loadTasks(projectId: string, _silent = false) {
+  if (!_silent) { loading.value = true; error.value = null }
   try {
     const res = await fetchTasksByProject(projectId)
-    tasks.value = res.data
+    tasksByProject.value[projectId] = res.data
+    recalcProjectProgress(projectId)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '未知错误'
+    if (!_silent) error.value = e instanceof Error ? e.message : '未知错误'
   } finally {
-    loading.value = false
+    if (!_silent) loading.value = false
   }
 }
 
 watch(() => props.projectId, (id) => {
-  if (id) loadTasks(id)
-  else tasks.value = []
+  if (id && !tasksByProject.value[id]) loadTasks(id)
+  else if (id) recalcProjectProgress(id)
 }, { immediate: true })
 
 onMounted(async () => {
   await loadProjects()
-  if (props.projectId) await loadTasks(props.projectId)
+  if (props.projectId) recalcProjectProgress(props.projectId)
 })
 </script>
 
