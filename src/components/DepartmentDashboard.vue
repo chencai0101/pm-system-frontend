@@ -1,7 +1,10 @@
 <template>
   <div class="app">
     <main class="main-content">
-      <p class="section-title">全部项目 · {{ projects.length }}</p>
+      <div class="title-row">
+        <p class="section-title">全部项目 · {{ projects.length }}</p>
+        <button class="btn-add" @click="showCreateModal = true">+ 新建项目</button>
+      </div>
 
       <div v-if="loading" class="loading-state"><span>加载中…</span></div>
       <div v-else-if="error" class="empty-state"><span class="empty-icon">⚠️</span><span>{{ error }}</span></div>
@@ -17,6 +20,12 @@
           @click="onCardClick(project.id)"
         />
       </div>
+
+      <ProjectCreateModal
+        v-if="showCreateModal"
+        @close="showCreateModal = false"
+        @created="onProjectCreated"
+      />
     </main>
   </div>
 </template>
@@ -24,12 +33,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import ProjectCard from './ProjectCard.vue'
+import ProjectCreateModal from './ProjectCreateModal.vue'
 import { fetchProjects, fetchTasksByProject, type Project, type Task } from '../api/index'
 
 const projects = ref<Project[]>([])
 const tasksByProject = ref<Record<string, Task[]>>({})
 const loading = ref(true)
 const error = ref<string | null>(null)
+const showCreateModal = ref(false)
 
 const emit = defineEmits<{ 'select-project': [id: string] }>()
 
@@ -51,7 +62,9 @@ function onCardClick(id: string) {
   emit('select-project', id)
 }
 
-onMounted(async () => {
+async function loadProjects() {
+  loading.value = true
+  error.value = null
   try {
     const res = await fetchProjects()
     projects.value = res.data
@@ -72,7 +85,14 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+function onProjectCreated() {
+  showCreateModal.value = false
+  loadProjects()
+}
+
+onMounted(loadProjects)
 </script>
 
 <style scoped>
@@ -87,14 +107,32 @@ onMounted(async () => {
   overflow-y: auto;
   padding: 20px 24px;
 }
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
 .section-title {
   font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: 16px;
+  margin: 0;
 }
+.btn-add {
+  padding: 6px 14px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-add:hover { opacity: 0.88; }
 .loading-state {
   display: flex;
   align-items: center;
