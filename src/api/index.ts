@@ -292,3 +292,98 @@ export async function toggleSubtask(id: string, completed: boolean): Promise<Sub
   const json: BackendSubtask = await res.json()
   return mapBackendSubtask(json)
 }
+
+// ============================================================
+// API — Members (admin panel)
+// ============================================================
+
+export interface Member {
+  id: string
+  name: string
+  role: 'admin' | 'member'
+  wecom_user_id: string
+  wecom_name: string
+  wecom_avatar: string
+  mobile: string
+  department_id: string
+  created_at: string
+  updated_at: string
+}
+
+interface BackendMember {
+  id: string
+  name: string
+  role: string
+  wecom_user_id: string
+  wecom_name: string
+  wecom_avatar: string
+  mobile: string
+  department_id: string
+  created_at: string
+  updated_at: string
+}
+
+function mapBackendMember(m: BackendMember): Member {
+  return {
+    id: m.id,
+    name: m.name,
+    role: m.role as 'admin' | 'member',
+    wecom_user_id: m.wecom_user_id,
+    wecom_name: m.wecom_name,
+    wecom_avatar: m.wecom_avatar,
+    mobile: m.mobile,
+    department_id: m.department_id,
+    created_at: m.created_at,
+    updated_at: m.updated_at,
+  }
+}
+
+export async function fetchMembers(name = ''): Promise<{ data: Member[]; error: string | null }> {
+  const url = name ? `${API_BASE}/api/members?name=${encodeURIComponent(name)}` : `${API_BASE}/api/members`
+  const res = await fetch(url)
+  const json: { data: BackendMember[]; error: string | null } = await res.json()
+  return { data: json.data.map(mapBackendMember), error: json.error }
+}
+
+export async function createMember(data: {
+  name: string
+  role: string
+  wecom_user_id: string
+  wecom_name?: string
+  mobile?: string
+}): Promise<Member> {
+  const res = await fetch(`${API_BASE}/api/members`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const json: { data: BackendMember; error: string | null } = await res.json()
+  if (json.error) throw new Error(json.error)
+  return mapBackendMember(json.data)
+}
+
+export async function updateMember(
+  id: string,
+  data: {
+    name?: string
+    role?: string
+    wecom_user_id?: string
+    wecom_name?: string
+    mobile?: string
+  }
+): Promise<Member> {
+  const res = await fetch(`${API_BASE}/api/members/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const json: { data: BackendMember; error: string | null } = await res.json()
+  if (json.error) throw new Error(json.error)
+  return mapBackendMember(json.data)
+}
+
+export async function deleteMember(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/members/${id}`, { method: 'DELETE' })
+  const json: { data: any; error: string | null } = await res.json()
+  if (json.error) throw new Error(json.error)
+}

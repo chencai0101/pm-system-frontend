@@ -28,6 +28,14 @@
         项目详情
         <span v-if="projectId" class="tab-project-id">{{ projectId }}</span>
       </button>
+      <button
+        class="tab"
+        :class="{ active: currentTab === 'admin' }"
+        @click="$emit('click:admin')"
+      >
+        <span class="tab-icon">⚙️</span>
+        管理后台
+      </button>
     </nav>
 
     <div class="header-right">
@@ -40,13 +48,14 @@
 import ThemeToggle from './ThemeToggle.vue'
 
 defineProps<{
-  currentTab: 'dashboard' | 'project'
+  currentTab: 'dashboard' | 'project' | 'admin'
   projectId: string
 }>()
 
 defineEmits<{
   'click:dashboard': []
   'click:project': []
+  'click:admin': []
 }>()
 </script>
 

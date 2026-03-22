@@ -5,6 +5,7 @@
       :project-id="selectedProjectId"
       @click:dashboard="goToDashboard"
       @click:project="goToProject"
+      @click:admin="goToAdmin"
     />
     <DepartmentDashboard
       v-if="currentTab === 'dashboard'"
@@ -15,6 +16,9 @@
       :project-id="selectedProjectId"
       @select-project="onProjectDetailSelectProject"
     />
+    <AdminDashboard
+      v-else-if="currentTab === 'admin'"
+    />
   </div>
 </template>
 
@@ -23,9 +27,10 @@ import { ref, onMounted } from 'vue'
 import Header from './components/Header.vue'
 import DepartmentDashboard from './components/DepartmentDashboard.vue'
 import ProjectTaskDetail from './views/ProjectTaskDetail.vue'
+import AdminDashboard from './views/AdminDashboard.vue'
 import { fetchProjects } from './api/index'
 
-type Tab = 'dashboard' | 'project'
+type Tab = 'dashboard' | 'project' | 'admin'
 
 const currentTab = ref<Tab>('dashboard')
 const selectedProjectId = ref<string>('')
@@ -37,6 +42,9 @@ function parseHash(): { tab: Tab; projectId: string } {
     const id = hash.replace('#/project/', '')
     return { tab: 'project', projectId: id }
   }
+  if (hash === '#/admin' || hash.startsWith('#/admin/')) {
+    return { tab: 'admin', projectId: '' }
+  }
   return { tab: 'dashboard', projectId: '' }
 }
 
@@ -44,6 +52,11 @@ function goToDashboard() {
   currentTab.value = 'dashboard'
   selectedProjectId.value = ''
   window.location.hash = '#/dashboard'
+}
+
+async function goToAdmin() {
+  currentTab.value = 'admin'
+  window.location.hash = '#/admin'
 }
 
 async function goToProject(id?: string) {
