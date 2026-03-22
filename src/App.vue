@@ -5,7 +5,6 @@
       :project-id="selectedProjectId"
       @click:dashboard="goToDashboard"
       @click:project="goToProject"
-      @click:admin="goToAdmin"
     />
     <DepartmentDashboard
       v-if="currentTab === 'dashboard'"
@@ -16,7 +15,6 @@
       :project-id="selectedProjectId"
       @select-project="onProjectDetailSelectProject"
     />
-    <AdminDashboard v-else-if="currentTab === 'admin'" />
   </div>
 </template>
 
@@ -25,10 +23,9 @@ import { ref, onMounted } from 'vue'
 import Header from './components/Header.vue'
 import DepartmentDashboard from './components/DepartmentDashboard.vue'
 import ProjectTaskDetail from './views/ProjectTaskDetail.vue'
-import AdminDashboard from './views/AdminDashboard.vue'
 import { fetchProjects } from './api/index'
 
-type Tab = 'dashboard' | 'project' | 'admin'
+type Tab = 'dashboard' | 'project'
 
 const currentTab = ref<Tab>('dashboard')
 const selectedProjectId = ref<string>('')
@@ -39,9 +36,6 @@ function parseHash(): { tab: Tab; projectId: string } {
   if (hash.startsWith('#/project/')) {
     const id = hash.replace('#/project/', '')
     return { tab: 'project', projectId: id }
-  }
-  if (hash === '#/admin' || hash.startsWith('#/admin/')) {
-    return { tab: 'admin', projectId: '' }
   }
   return { tab: 'dashboard', projectId: '' }
 }
@@ -54,12 +48,13 @@ function goToDashboard() {
 
 async function goToProject(id?: string) {
   if (!id && !selectedProjectId.value && !firstProjectId.value) {
+    // No project selected yet - fetch the first project from API
     try {
       const res = await fetchProjects()
       if (res.data.length > 0) {
         id = res.data[0].id
       } else {
-        return
+        return // no projects available
       }
     } catch {
       return
@@ -71,13 +66,10 @@ async function goToProject(id?: string) {
   window.location.hash = `#/project/${targetId}`
 }
 
-function goToAdmin() {
-  currentTab.value = 'admin'
-  selectedProjectId.value = ''
-  window.location.hash = '#/admin'
-}
-
+// From DepartmentDashboard: clicking a project card
 async function onDashboardSelectProject(id: string) {
+  console.log('[NAV] dashboard → project', id)
+  // Save first project id if not set
   if (!firstProjectId.value) {
     try {
       const res = await fetchProjects()
@@ -89,6 +81,7 @@ async function onDashboardSelectProject(id: string) {
   window.location.hash = `#/project/${id}`
 }
 
+// From ProjectTaskDetail: clicking a project in the left sidebar
 function onProjectDetailSelectProject(id: string) {
   currentTab.value = 'project'
   selectedProjectId.value = id

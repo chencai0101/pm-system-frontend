@@ -39,7 +39,7 @@
               :column="col"
               :tasks="tasksByStatus[col.key]"
               @open-edit="onOpenEdit"
-              @tasks-reordered="(updated: Task[]) => onTasksReordered(col.key, updated)"
+              @tasks-reordered="(updated) => onTasksReordered(col.key, updated)"
               @status-change="onStatusChange"
               @drag-start="onTaskDragStart"
               @subtask-toggled="onSubtaskToggled"

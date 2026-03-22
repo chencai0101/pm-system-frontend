@@ -79,8 +79,7 @@ const projectProgressMap = computed(() => {
 .project-list-items :deep(.project-card) {
   border-left: 3px solid transparent;
   border-radius: 8px;
-  height: 100px;
-  flex-shrink: 0;
+  min-height: 100px;
   transition: border-color 0.15s, transform 0.15s;
 }
 
