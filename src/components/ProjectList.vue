@@ -9,6 +9,7 @@
         :selected="project.id === selectedId"
         :clickable="true"
         :computed-progress="projectProgressMap[project.id]"
+        :show-edit-button="false"
         @click="$emit('select', project.id)"
       />
     </div>

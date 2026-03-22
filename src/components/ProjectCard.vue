@@ -15,6 +15,7 @@
     <div class="project-card-body">
       <!-- Edit button (top-right) -->
       <button
+        v-if="showEditButton !== false"
         class="edit-btn"
         title="编辑项目"
         @click.stop="emit('edit', project)"
@@ -60,6 +61,7 @@ const props = defineProps<{
   selected?: boolean
   clickable?: boolean
   computedProgress?: number
+  showEditButton?: boolean
 }>()
 
 const emit = defineEmits<{
