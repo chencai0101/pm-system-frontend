@@ -292,3 +292,229 @@ export async function toggleSubtask(id: string, completed: boolean): Promise<Sub
   const json: BackendSubtask = await res.json()
   return mapBackendSubtask(json)
 }
+
+// ============================================================
+// API — Members (for Permissions)
+// ============================================================
+
+export interface Member {
+  id: string
+  name: string
+  role: 'admin' | 'member'
+  wecom_user_id: string
+  wecom_name: string
+  wecom_avatar: string
+  mobile: string
+  department_id: string
+  created_at: string
+  updated_at: string
+}
+
+export async function fetchMembers(): Promise<{ data: Member[] }> {
+  const res = await fetch(`${API_BASE}/api/members`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  return { data: json.data ?? [] }
+}
+
+// ============================================================
+// API — Tags
+// ============================================================
+
+export interface Tag {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
+
+export interface TagWithUsage extends Tag {
+  used_in_tasks?: number
+  used_in_projects?: number
+}
+
+export async function fetchTags(): Promise<{ data: TagWithUsage[] }> {
+  const res = await fetch(`${API_BASE}/api/tags`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  return { data: json.data ?? [] }
+}
+
+export async function createTag(data: { name: string; color: string }): Promise<Tag> {
+  const res = await fetch(`${API_BASE}/api/tags`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  return json.data
+}
+
+export async function updateTag(id: string, data: { name?: string; color?: string }): Promise<Tag> {
+  const res = await fetch(`${API_BASE}/api/tags/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  return json.data
+}
+
+export async function deleteTag(id: string): Promise<{ used_in_tasks?: number; used_in_projects?: number } | void> {
+  const res = await fetch(`${API_BASE}/api/tags/${id}`, { method: 'DELETE' })
+  if (res.status === 409) {
+    const json: any = await res.json()
+    return json.data
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  return json.data
+}
+
+// ============================================================
+// API — Permissions
+// ============================================================
+
+export interface PagePermission {
+  member_id: string
+  member_name: string
+  pages: Record<string, boolean>
+}
+
+export async function fetchPagePermissions(): Promise<{ data: PagePermission[] }> {
+  const res = await fetch(`${API_BASE}/api/permissions/pages`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  return { data: json.data ?? [] }
+}
+
+export async function updatePagePermissions(
+  data: { member_id: string; page_key: string; enabled: boolean }[]
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/permissions/pages`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ permissions: data }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+export interface ProjectPermission {
+  member_id: string
+  member_name: string
+  projects: { id: string; name: string }[]
+}
+
+export async function fetchProjectPermissions(): Promise<{ data: ProjectPermission[] }> {
+  const res = await fetch(`${API_BASE}/api/permissions/projects`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  return { data: json.data ?? [] }
+}
+
+export async function updateProjectPermissions(memberId: string, projectIds: string[]): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/permissions/projects/${memberId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_ids: projectIds }),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+}
+
+// ============================================================
+// API — Members (admin panel)
+// ============================================================
+
+// Member interface and fetchMembers are already defined above (Permissions section)
+// Additional member admin APIs:
+
+interface BackendMemberForAdmin {
+  id: string
+  name: string
+  role: 'admin' | 'member'
+  wecom_user_id: string
+  wecom_name: string
+  wecom_avatar: string
+  mobile: string
+  department_id: string
+  created_at: string
+  updated_at: string
+}
+
+function mapBackendMemberForAdmin(m: BackendMemberForAdmin): Member {
+  return {
+    id: m.id,
+    name: m.name,
+    role: m.role,
+    wecom_user_id: m.wecom_user_id,
+    wecom_name: m.wecom_name,
+    wecom_avatar: m.wecom_avatar,
+    mobile: m.mobile,
+    department_id: m.department_id,
+    created_at: m.created_at,
+    updated_at: m.updated_at,
+  }
+}
+
+export async function createMember(data: {
+  name: string
+  role: 'admin' | 'member'
+  wecom_user_id: string
+  wecom_name?: string
+  wecom_avatar?: string
+  mobile?: string
+  department_id?: string
+}): Promise<Member> {
+  const res = await fetch(`${API_BASE}/api/members`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const json: any = await res.json()
+  if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`)
+  return mapBackendMemberForAdmin(json.data)
+}
+
+export async function updateMember(
+  id: string,
+  data: {
+    name?: string
+    role?: 'admin' | 'member'
+    wecom_user_id?: string
+    wecom_name?: string
+    wecom_avatar?: string
+    mobile?: string
+    department_id?: string
+  }
+): Promise<Member> {
+  const res = await fetch(`${API_BASE}/api/members/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const json: any = await res.json()
+  if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`)
+  return mapBackendMemberForAdmin(json.data)
+}
+
+export async function deleteMember(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/members/${id}`, { method: 'DELETE' })
+  if (!res.ok) {
+    const json: any = await res.json()
+    throw new Error(json.error || `HTTP ${res.status}`)
+  }
+}
+
+export async function fetchMemberProjects(id: string): Promise<{ data: Project[] }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/members/${id}/projects`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const json: BackendProjectsResponse = await res.json()
+    return { data: json.data.map(mapBackendProject) }
+  } catch (err) {
+    console.error('Failed to fetch member projects:', err)
+    return { data: [] }
+  }
+}
