@@ -48,7 +48,8 @@
         <div class="member-card-right" @click.stop>
           <button class="icon-btn" title="查看参与项目" @click="openDetailDrawer(member)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
             </svg>
           </button>
           <button class="icon-btn" title="编辑" @click="openEditModal(member)">

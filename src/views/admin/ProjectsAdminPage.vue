@@ -22,26 +22,33 @@
     <div v-else-if="error" class="state-message error">⚠️ {{ error }}</div>
     <div v-else-if="projects.length === 0" class="state-message">暂无项目</div>
 
-    <!-- Project list -->
+    <!-- Project list — card style, matches MembersPage exactly -->
     <div v-else class="project-list">
       <div
         v-for="project in filteredProjects"
         :key="project.id"
         class="project-row"
-        @click="goToProject(project.id)"
       >
         <div class="project-row-left">
-          <div class="project-name">{{ project.name }}</div>
-          <div class="project-meta">
-            <span class="meta-tag">👤 {{ project.owner }}</span>
-            <span class="meta-tag">📅 {{ project.startDate }} → {{ project.endDate }}</span>
-            <span class="meta-tag">✅ {{ project.completedCount }}/{{ project.taskCount }} 任务</span>
-            <span class="status-badge" :class="effectiveStatus(project)">
-              {{ effectiveStatus(project) }}
-            </span>
-          </div>
+          <span class="project-name">{{ project.name }}</span>
+          <span class="status-badge" :class="effectiveStatus(project)">
+            {{ effectiveStatus(project) }}
+          </span>
+        </div>
+        <div class="project-row-meta">
+          <span>{{ project.owner }}</span>
+          <span class="meta-sep">·</span>
+          <span>{{ project.startDate }} → {{ project.endDate }}</span>
+          <span class="meta-sep">·</span>
+          <span>{{ project.completedCount }}/{{ project.taskCount }} 任务</span>
         </div>
         <div class="project-row-right" @click.stop>
+          <button class="icon-btn" title="查看项目" @click="goToProject(project.id)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+          </button>
           <button class="icon-btn" title="编辑" @click="openEditModal(project)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -258,7 +265,6 @@ onMounted(loadProjects)
 }
 
 .btn-primary:hover { opacity: 0.85; }
-
 .ml-auto { margin-left: auto; }
 
 .state-message {
@@ -270,7 +276,7 @@ onMounted(loadProjects)
 
 .state-message.error { color: #ef4444; }
 
-/* Project list — mirrors member list style */
+/* Card list — matches MembersPage exactly */
 .project-list {
   display: flex;
   flex-direction: column;
@@ -295,35 +301,44 @@ onMounted(loadProjects)
 
 .project-row-left {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .project-name {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.project-meta {
+.project-row-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.meta-tag {
-  font-size: 12px;
-  color: var(--muted);
+.meta-sep {
+  color: var(--border-strong);
 }
 
 .status-badge {
+  display: inline-block;
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: var(--radius-full);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 .status-badge.未开始 { background: var(--bg-accent); color: var(--muted); }
@@ -333,7 +348,8 @@ onMounted(loadProjects)
 .project-row-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .icon-btn {
@@ -353,7 +369,7 @@ onMounted(loadProjects)
 .icon-btn:hover { color: var(--accent); background: var(--accent-subtle); }
 .icon-btn.danger:hover { color: #ef4444; background: #fee2e2; }
 
-/* Modal + dialog styles */
+/* Modal + dialog */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -406,17 +422,8 @@ onMounted(loadProjects)
 
 .close-btn:hover { background: var(--bg-accent); color: var(--text); }
 
-.dialog-body {
-  padding: 20px;
-}
-
-.dialog-body p {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: var(--text);
-  line-height: 1.5;
-}
-
+.dialog-body { padding: 20px; }
+.dialog-body p { margin: 0 0 8px; font-size: 13px; color: var(--text); line-height: 1.5; }
 .dialog-error { color: #ef4444; font-size: 12px; }
 
 .dialog-footer {
