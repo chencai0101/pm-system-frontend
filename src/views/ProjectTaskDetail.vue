@@ -288,7 +288,7 @@ onMounted(async () => {
   height: calc(100vh - 56px);
 }
 .sidebar {
-  width: 240px;
+  width: 360px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   overflow-y: auto;
