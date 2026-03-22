@@ -391,11 +391,46 @@ export async function deleteMember(id: string): Promise<void> {
 export interface MemberProject {
   id: string
   name: string
+  owner: string
+  startDate: string
+  endDate: string
+  status: string
+  taskCount: number
+  completedCount: number
+  progress: number
   can_edit: boolean
+}
+
+interface BackendMemberProject {
+  id: string
+  name: string
+  owner: string
+  start_date: string
+  end_date: string
+  status: string
+  task_count: number
+  completed_count: number
+  progress: number
+  can_edit: boolean
+}
+
+function mapBackendMemberProject(p: BackendMemberProject): MemberProject {
+  return {
+    id: p.id,
+    name: p.name,
+    owner: p.owner,
+    startDate: p.start_date,
+    endDate: p.end_date,
+    status: p.status,
+    taskCount: p.task_count,
+    completedCount: p.completed_count,
+    progress: p.progress,
+    can_edit: p.can_edit,
+  }
 }
 
 export async function fetchMemberProjects(memberId: string): Promise<{ data: MemberProject[]; error: string | null }> {
   const res = await fetch(`${API_BASE}/api/members/${memberId}/projects`)
-  const json: { data: MemberProject[]; error: string | null } = await res.json()
-  return json
+  const json: { data: BackendMemberProject[]; error: string | null } = await res.json()
+  return { data: json.data.map(mapBackendMemberProject), error: json.error }
 }

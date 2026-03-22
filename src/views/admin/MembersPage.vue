@@ -130,16 +130,14 @@
         <div class="drawer-body">
           <div v-if="detailLoading" class="state-message">加载中…</div>
           <div v-else-if="detailProjects.length === 0" class="state-message">暂无关联项目</div>
-          <div v-else class="project-tag-list">
-            <span
+          <div v-else class="project-card-list">
+            <ProjectCard
               v-for="proj in detailProjects"
               :key="proj.id"
-              class="project-tag"
-              :class="{ editable: proj.can_edit }"
-            >
-              {{ proj.name }}
-              <span v-if="proj.can_edit" class="tag-edit-badge">可编辑</span>
-            </span>
+              :project="(proj as unknown as Project)"
+              :clickable="true"
+              @click="goToProject(proj.id)"
+            />
           </div>
         </div>
       </div>
@@ -169,7 +167,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { fetchMembers, createMember, updateMember, deleteMember, fetchMemberProjects, type Member } from '../../api/index'
+import { fetchMembers, createMember, updateMember, deleteMember, fetchMemberProjects, type Member, type MemberProject } from '../../api/index'
+import ProjectCard from '../../components/ProjectCard.vue'
+import type { Project } from '../../api/index'
 
 const members = ref<Member[]>([])
 const loading = ref(false)
@@ -283,8 +283,16 @@ async function submitForm() {
 // ── Detail Drawer ────────────────────────────────────────────
 const detailDrawerVisible = ref(false)
 const detailMember = ref<Member | null>(null)
-const detailProjects = ref<{ id: string; name: string; can_edit: boolean }[]>([])
+const detailProjects = ref<MemberProject[]>([])
 const detailLoading = ref(false)
+
+function goToProject(projectId: string) {
+  closeDetailDrawer()
+  // Navigate to project detail tab with hash
+  window.location.hash = `#/project/${projectId}`
+  // Dispatch custom event so App.vue can switch tab
+  window.dispatchEvent(new CustomEvent('open-project', { detail: { projectId } }))
+}
 
 function openDetailDrawer(member: Member) {
   detailMember.value = member

@@ -111,6 +111,13 @@ onMounted(() => {
     currentTab.value = parsed.tab
     selectedProjectId.value = parsed.projectId
   })
+
+  window.addEventListener('open-project', (e: Event) => {
+    const { projectId } = (e as CustomEvent).detail as { projectId: string }
+    currentTab.value = 'project'
+    selectedProjectId.value = projectId
+    window.location.hash = `#/project/${projectId}`
+  })
 })
 </script>
 
