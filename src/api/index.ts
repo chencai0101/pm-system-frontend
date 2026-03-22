@@ -204,7 +204,7 @@ export async function updateSubtask(subtaskId: string, data: { title?: string; c
   return mapBackendTask(json.data)
 }
 
-export async function deleteSubtask(subtaskId: string): Promise<Task> {
+export async function deleteSubtask(subtaskId: string): Promise<Task | null> {
   const res = await fetch(`${API_BASE}/api/subtasks/${subtaskId}`, {
     method: 'DELETE',
   })
@@ -230,6 +230,21 @@ export async function updateTaskStatus(id: string, status: string): Promise<Task
     console.error('[API] full error:', e, (e as Error)?.message, (e as Error)?.cause)
     throw e
   }
+}
+
+export async function createTask(
+  projectId: string,
+  data: { title: string; priority: TaskPriority; end_date?: string; note?: string }
+): Promise<Task> {
+  const res = await fetch(`${API_BASE}/api/projects/${projectId}/tasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const json: any = await res.json()
+  if (json.error) throw new Error(json.error as string)
+  return mapBackendTask(json.data)
 }
 
 export async function toggleSubtask(id: string, completed: boolean): Promise<Subtask> {

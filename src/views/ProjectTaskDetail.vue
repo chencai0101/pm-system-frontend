@@ -26,6 +26,7 @@
               <span class="progress-label">
                 进度 {{ realProgress }}%
               </span>
+              <button class="btn-add-task" @click="onAddTask">+ 任务</button>
             </div>
           </div>
 
@@ -57,8 +58,10 @@
 
     <TaskEditModal
       v-if="editingTask"
-      :task="editingTask"
-      @close="editingTask = null"
+      :task="editMode === 'edit' ? editingTask : undefined"
+      :mode="editMode"
+      :project-id="props.projectId"
+      @close="editingTask = null; editMode = 'edit'"
       @saved="onTaskSaved"
     />
   </div>
@@ -73,7 +76,6 @@ import {
   fetchProjects,
   fetchTasksByProject,
   updateTaskStatus,
-  updateSubtask,
   type Project,
   type Task,
   type TaskStatus,
@@ -88,6 +90,7 @@ const tasksByProject = ref<Record<string, Task[]>>({})
 const loading = ref(false)
 const error = ref<string | null>(null)
 const editingTask = ref<Task | null>(null)
+const editMode = ref<'add' | 'edit'>('edit')
 
 // tasks for the currently selected project (convenience accessor)
 const tasks = computed(() => tasksByProject.value[props.projectId] ?? [])
@@ -178,15 +181,29 @@ function onSelectProject(id: string) {
 }
 
 function onOpenEdit(task: Task) {
+  editMode.value = 'edit'
   editingTask.value = { ...task, subtasks: [...task.subtasks] }
+}
+
+function onAddTask() {
+  editMode.value = 'add'
+  editingTask.value = { id: '', title: '', status: 'open' } as Task
 }
 
 async function onTaskSaved(updated: Task) {
   const pts = tasksByProject.value[props.projectId]
   if (!pts) return
   const idx = pts.findIndex(t => t.id === updated.id)
-  if (idx !== -1) tasksByProject.value[props.projectId][idx] = updated
+  if (idx !== -1) {
+    // edit mode: replace existing
+    tasksByProject.value[props.projectId][idx] = updated
+  } else {
+    // add mode: append new task
+    tasksByProject.value[props.projectId].push(updated)
+  }
   editingTask.value = null
+  editMode.value = 'edit'
+  recalcProjectProgress(props.projectId)
 }
 
 function onTasksReordered(_status: TaskStatus, _updated: Task[]) {
@@ -303,6 +320,19 @@ onMounted(async () => {
   color: var(--muted);
   font-family: "JetBrains Mono", monospace;
 }
+.btn-add-task {
+  margin-left: 8px;
+  padding: 4px 12px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-add-task:hover { opacity: 0.85; }
 .board-columns {
   display: flex;
   gap: 16px;

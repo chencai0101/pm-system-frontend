@@ -5,7 +5,7 @@
         <input
           v-model="editTitle"
           class="modal-title-input"
-          placeholder="任务名称"
+          :placeholder="isAdd ? '新建任务…' : '任务名称'"
           @keydown.enter="save"
         />
         <button class="close-btn" @click="$emit('close')">✕</button>
@@ -42,7 +42,7 @@
         <div class="subtasks-section">
           <label class="subtasks-label">
             子任务
-            <span class="subtask-progress">{{ completedCount }}/{{ task.subtasks.length }}</span>
+            <span class="subtask-progress">{{ completedCount }}/{{ task?.subtasks?.length ?? 0 }}</span>
           </label>
 
           <div class="subtasks-list">
@@ -86,8 +86,9 @@
           <div class="add-subtask">
             <input
               v-model="newSubtaskTitle"
-              placeholder="输入子任务名称，回车添加"
+              :placeholder="isAdd ? '保存任务后可添加子任务' : '输入子任务名称，回车添加'"
               class="add-subtask-input"
+              :disabled="isAdd"
               @keydown.enter="addSubtask"
             />
           </div>
@@ -104,21 +105,27 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { Task } from '../api/index'
-import { createSubtask, updateSubtask, deleteSubtask } from '../api/index'
+import type { Task, TaskPriority } from '../api/index'
+import { createSubtask, updateSubtask, deleteSubtask, createTask } from '../api/index'
 
-const props = defineProps<{ task: Task }>()
+const props = defineProps<{
+  task?: Task
+  mode?: 'add' | 'edit'
+  projectId?: string
+}>()
 
 const emit = defineEmits<{
   close: []
   saved: [task: Task]
 }>()
 
-const editTitle = ref(props.task.title)
-const editNote = ref(props.task.note)
-const editPriority = ref(props.task.priority)
-const editEndDate = ref(props.task.endDate)
-const editSubtasks = ref([...props.task.subtasks])
+const isAdd = computed(() => props.mode === 'add')
+
+const editTitle = ref(props.task?.title ?? '')
+const editNote = ref(props.task?.note ?? '')
+const editPriority = ref<TaskPriority>(props.task?.priority ?? 'medium')
+const editEndDate = ref(props.task?.endDate ?? '')
+const editSubtasks = ref([...(props.task?.subtasks ?? [])])
 const newSubtaskTitle = ref('')
 const editingSubtaskId = ref<string | null>(null)
 const editingSubtaskTitle = ref('')
@@ -170,6 +177,7 @@ async function toggleSubtask(subtask: any) {
 }
 
 async function addSubtask() {
+  if (!props.task?.id) return
   console.log('[Modal] addSubtask called, newSubtaskTitle:', newSubtaskTitle.value)
   const title = newSubtaskTitle.value.trim()
   if (!title) { console.log('[Modal] empty, skipping'); return }
@@ -198,14 +206,29 @@ async function removeSubtask(subtaskId: string) {
 }
 
 async function save() {
-  emit('saved', {
-    ...props.task,
-    title: editTitle.value,
-    note: editNote.value,
-    priority: editPriority.value,
-    endDate: editEndDate.value,
-    subtasks: editSubtasks.value,
-  } as Task)
+  if (isAdd.value) {
+    if (!editTitle.value.trim()) return
+    try {
+      const created = await createTask(props.projectId!, {
+        title: editTitle.value.trim(),
+        note: editNote.value.trim(),
+        priority: editPriority.value,
+        end_date: editEndDate.value || undefined,
+      })
+      emit('saved', created)
+    } catch (e) {
+      console.error('[Modal] create task failed:', e)
+    }
+  } else {
+    emit('saved', {
+      ...props.task,
+      title: editTitle.value,
+      note: editNote.value,
+      priority: editPriority.value,
+      endDate: editEndDate.value,
+      subtasks: editSubtasks.value,
+    } as Task)
+  }
 }
 </script>
 
