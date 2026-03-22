@@ -3,7 +3,6 @@
     <main class="main-content">
       <div class="title-row">
         <p class="section-title">全部项目 · {{ projects.length }}</p>
-        <button class="btn-add" @click="showCreateModal = true">+ 新建项目</button>
       </div>
 
       <div v-if="loading" class="loading-state"><span>加载中…</span></div>
