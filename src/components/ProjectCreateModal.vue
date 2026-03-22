@@ -2,45 +2,44 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
       <div class="modal-header">
-        <span class="modal-title">新建项目</span>
+        <input
+          v-model="form.name"
+          class="modal-title-input"
+          placeholder="项目名称…"
+          @keydown.enter="submit"
+        />
         <button class="close-btn" @click="$emit('close')">✕</button>
       </div>
 
       <div class="modal-body">
-        <div v-if="errorMsg" class="error-banner">{{ errorMsg }}</div>
-
-        <div class="field">
-          <label>项目名称 <span class="required">*</span></label>
-          <input v-model="form.name" type="text" placeholder="输入项目名称" />
+        <div class="meta-row">
+          <div class="meta-field">
+            <label>负责人 <span class="required">*</span></label>
+            <select v-model="form.owner">
+              <option value="">选择成员…</option>
+              <option v-for="m in members" :key="m.id" :value="m.name">{{ m.name }}</option>
+            </select>
+          </div>
         </div>
 
-        <div class="field">
-          <label>负责人 <span class="required">*</span></label>
-          <input v-model="form.owner" type="text" placeholder="输入负责人姓名" />
-        </div>
-
-        <div class="row">
-          <div class="field">
+        <div class="meta-row">
+          <div class="meta-field">
             <label>开始日期 <span class="required">*</span></label>
             <input v-model="form.start_date" type="date" />
           </div>
-          <div class="field">
+          <div class="meta-field">
             <label>结束日期 <span class="required">*</span></label>
             <input v-model="form.end_date" type="date" />
           </div>
         </div>
 
-        <div class="field">
-          <label>描述</label>
-          <textarea v-model="form.description" placeholder="项目描述（可选）" rows="3" />
-        </div>
+        <div v-if="errorMsg" class="error-banner">{{ errorMsg }}</div>
       </div>
 
       <div class="modal-footer">
         <button class="btn-cancel" @click="$emit('close')" :disabled="loading">取消</button>
         <button class="btn-save" @click="submit" :disabled="loading">
-          <span v-if="loading" class="loading-text">创建中…</span>
-          <span v-else>创建</span>
+          {{ loading ? '创建中…' : '创建' }}
         </button>
       </div>
     </div>
@@ -48,8 +47,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { createProject } from '../api/index'
+import { ref, reactive, onMounted } from 'vue'
+import { createProject, fetchMembers, type Member } from '../api/index'
 
 const emit = defineEmits<{
   close: []
@@ -58,18 +57,23 @@ const emit = defineEmits<{
 
 const loading = ref(false)
 const errorMsg = ref('')
+const members = ref<Member[]>([])
 
 const form = reactive({
   name: '',
   owner: '',
   start_date: '',
   end_date: '',
-  description: '',
+})
+
+onMounted(async () => {
+  const res = await fetchMembers()
+  if (!res.error) members.value = res.data
 })
 
 function validate(): string {
   if (!form.name.trim()) return '请填写项目名称'
-  if (!form.owner.trim()) return '请填写负责人'
+  if (!form.owner) return '请选择负责人'
   if (!form.start_date) return '请选择开始日期'
   if (!form.end_date) return '请选择结束日期'
   if (form.end_date < form.start_date) return '结束日期不能早于开始日期'
@@ -79,18 +83,14 @@ function validate(): string {
 async function submit() {
   errorMsg.value = ''
   const err = validate()
-  if (err) {
-    errorMsg.value = err
-    return
-  }
+  if (err) { errorMsg.value = err; return }
   loading.value = true
   try {
     await createProject({
       name: form.name.trim(),
-      owner: form.owner.trim(),
+      owner: form.owner,
       start_date: form.start_date,
       end_date: form.end_date,
-      description: form.description.trim() || undefined,
     })
     emit('created')
   } catch (e: any) {
@@ -105,7 +105,7 @@ async function submit() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,7 +115,7 @@ async function submit() {
 .modal {
   background: var(--card);
   border-radius: var(--radius-lg);
-  width: 480px;
+  width: 520px;
   max-width: 90vw;
   max-height: 80vh;
   overflow: hidden;
@@ -126,14 +126,28 @@ async function submit() {
 .modal-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
 }
-.modal-title {
+.modal-title-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
   font-size: 16px;
   font-weight: 700;
   color: var(--text-strong);
+  outline: none;
+  padding: 4px 0;
+  transition: border-color 0.15s;
+}
+.modal-title-input:focus {
+  border-bottom-color: var(--accent);
+}
+.modal-title-input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
 }
 .close-btn {
   width: 28px;
@@ -155,7 +169,7 @@ async function submit() {
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 .error-banner {
   background: #fee2e2;
@@ -164,12 +178,17 @@ async function submit() {
   border-radius: var(--radius-sm);
   font-size: 13px;
 }
-.field {
+.meta-row {
+  display: flex;
+  gap: 16px;
+}
+.meta-field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
+  flex: 1;
 }
-.field label {
+.meta-field label {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -177,30 +196,21 @@ async function submit() {
   color: var(--muted);
 }
 .required { color: #dc2626; }
-.field input,
-.field textarea {
-  padding: 7px 10px;
+.meta-field select,
+.meta-field input[type="date"] {
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--bg);
+  background: var(--bg-accent);
   color: var(--text);
   font-size: 13px;
-  font-family: inherit;
   outline: none;
   transition: border-color 0.15s;
 }
-.field input:focus,
-.field textarea:focus {
+.meta-field select:focus,
+.meta-field input[type="date"]:focus {
   border-color: var(--accent);
 }
-.field textarea {
-  resize: vertical;
-}
-.row {
-  display: flex;
-  gap: 12px;
-}
-.row .field { flex: 1; }
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -232,5 +242,4 @@ async function submit() {
   opacity: 0.6;
   cursor: not-allowed;
 }
-.loading-text { font-size: 12px; }
 </style>
