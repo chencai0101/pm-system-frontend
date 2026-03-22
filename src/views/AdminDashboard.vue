@@ -1,21 +1,23 @@
 <template>
-  <div class="admin-dashboard">
-    <!-- Tab Bar -->
-    <div class="admin-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.key"
-        class="admin-tab"
-        :class="{ active: currentTab === tab.key }"
-        @click="currentTab = tab.key"
-      >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        {{ tab.label }}
-      </button>
-    </div>
+  <div class="admin-layout">
+    <!-- Sidebar — mirrors ProjectTaskDetail sidebar style -->
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          class="nav-item"
+          :class="{ active: currentTab === tab.key }"
+          @click="currentTab = tab.key"
+        >
+          <span class="nav-icon">{{ tab.icon }}</span>
+          <span class="nav-label">{{ tab.label }}</span>
+        </button>
+      </nav>
+    </aside>
 
-    <!-- Content -->
-    <div class="admin-content">
+    <!-- Main content -->
+    <main class="admin-main">
       <MembersPage v-if="currentTab === 'members'" />
       <ProjectsAdminPage v-else-if="currentTab === 'projects'" />
       <div v-else-if="currentTab === 'permissions'" class="placeholder">
@@ -28,7 +30,7 @@
         <h2>标签管理</h2>
         <p>下一个功能，即将开始</p>
       </div>
-    </div>
+    </main>
   </div>
 </template>
 
@@ -48,52 +50,73 @@ const currentTab = ref<'members' | 'projects' | 'permissions' | 'tags'>('members
 </script>
 
 <style scoped>
-.admin-dashboard {
+/* Layout — same as ProjectTaskDetail */
+.admin-layout {
   display: flex;
-  flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
 
-.admin-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 32px;
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
+.sidebar {
+  width: 360px;
   flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
-.admin-tab {
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+}
+
+.nav-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 16px;
+  gap: 10px;
+  padding: 10px 14px;
   border: none;
-  background: none;
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border-radius: var(--radius-md);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  text-align: left;
   font-family: inherit;
+  border-left: 3px solid transparent;
 }
 
-.admin-tab:hover {
+.nav-item:hover {
   background: var(--bg-accent);
   color: var(--text);
 }
 
-.admin-tab.active {
+.nav-item.active {
   background: var(--accent-subtle);
   color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 700;
 }
 
-.tab-icon { font-size: 14px; }
+.nav-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
 
-.admin-content {
+.nav-label {
+  flex: 1;
+}
+
+/* Content area */
+.admin-main {
   flex: 1;
   overflow: hidden;
 }
