@@ -1,8 +1,9 @@
 <template>
   <div class="task-card" :class="{ overdue: isOverdue }">
     <!-- Progress bar -->
+    <div class="task-card-bg" />
     <div
-      class="progress-fill"
+      class="task-card-fill"
       :style="{ width: `${progressPct}%` }"
     />
     <div class="task-body">
@@ -135,14 +136,24 @@ const progressPct = computed(() => {
 .task-card.overdue {
   border-color: #ff4444;
 }
-.progress-fill {
+.task-card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-accent);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}
+.task-card-fill {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(135deg, var(--accent-subtle) 0%, transparent 80%);
-  pointer-events: none;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 35%, transparent) 0%, transparent 80%);
   border-radius: var(--radius-md) 0 0 var(--radius-md);
+  pointer-events: none;
 }
 .task-body {
   position: relative;
