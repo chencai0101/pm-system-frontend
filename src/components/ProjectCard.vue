@@ -30,8 +30,8 @@
             {{ project.completedCount }}/{{ project.taskCount }} 任务
             · {{ Math.round((computedProgress ?? project.progress) * 100) }}%
           </span>
-          <span class="status-badge" :class="project.status">
-            {{ project.status }}
+          <span class="status-badge" :class="effectiveStatus">
+            {{ effectiveStatus }}
           </span>
         </div>
       </div>
@@ -40,9 +40,10 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Project } from '../api/index'
 
-defineProps<{
+const props = defineProps<{
   project: Project
   selected?: boolean
   clickable?: boolean
@@ -52,4 +53,12 @@ defineProps<{
 const emit = defineEmits<{
   click: []
 }>()
+
+// Derive status dynamically from real completion percentage
+const effectiveStatus = computed(() => {
+  const pct = (props.computedProgress ?? props.project.progress) * 100
+  if (pct >= 100) return '已完成'
+  if (pct > 0) return '进行中'
+  return '未开始'
+})
 </script>
