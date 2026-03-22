@@ -21,11 +21,13 @@
       >
         <template v-if="selectedProject">
           <div class="board-header">
-            <div class="board-project-name">{{ selectedProject.name }}</div>
-            <div class="board-project-meta">
+            <div class="board-header-left">
+              <div class="board-project-name">{{ selectedProject.name }}</div>
               <span class="progress-label">
                 进度 {{ realProgress }}%
               </span>
+            </div>
+            <div class="board-header-right">
               <button class="btn-add-task" @click="onAddTask">+ 任务</button>
               <button class="btn-delete-project" title="删除项目" @click="confirmDeleteProject">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -360,10 +362,21 @@ onMounted(async () => {
 }
 .board-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
   flex-shrink: 0;
+}
+.board-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.board-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .board-project-name {
   font-size: 20px;
@@ -376,7 +389,6 @@ onMounted(async () => {
   font-family: "JetBrains Mono", monospace;
 }
 .btn-add-task {
-  margin-left: 8px;
   padding: 4px 12px;
   background: var(--accent);
   color: #fff;

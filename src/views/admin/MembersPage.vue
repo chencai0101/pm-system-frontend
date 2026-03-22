@@ -13,7 +13,7 @@
           type="text"
           placeholder="搜索姓名..."
         />
-        <button class="btn-primary" @click="openCreateModal">+ 新增成员</button>
+        <button class="btn-primary ml-auto" @click="openCreateModal">+ 新增成员</button>
       </div>
     </div>
 
@@ -413,6 +413,8 @@ async function executeDelete() {
 }
 
 .btn-primary:hover { opacity: 0.85; }
+
+.ml-auto { margin-left: auto; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .state-message {

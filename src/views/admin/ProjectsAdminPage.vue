@@ -13,7 +13,7 @@
           type="text"
           placeholder="搜索项目名称…"
         />
-        <button class="btn-primary" @click="showCreateModal = true">+ 新建项目</button>
+        <button class="btn-primary ml-auto" @click="showCreateModal = true">+ 新建项目</button>
       </div>
     </div>
 
@@ -258,6 +258,8 @@ onMounted(loadProjects)
 }
 
 .btn-primary:hover { opacity: 0.85; }
+
+.ml-auto { margin-left: auto; }
 
 .state-message {
   font-size: 14px;
