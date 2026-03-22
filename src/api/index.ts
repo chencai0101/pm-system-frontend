@@ -387,3 +387,15 @@ export async function deleteMember(id: string): Promise<void> {
   const json: { data: any; error: string | null } = await res.json()
   if (json.error) throw new Error(json.error)
 }
+
+export interface MemberProject {
+  id: string
+  name: string
+  can_edit: boolean
+}
+
+export async function fetchMemberProjects(memberId: string): Promise<{ data: MemberProject[]; error: string | null }> {
+  const res = await fetch(`${API_BASE}/api/members/${memberId}/projects`)
+  const json: { data: MemberProject[]; error: string | null } = await res.json()
+  return json
+}

@@ -129,10 +129,16 @@
         </div>
         <div class="drawer-body">
           <div v-if="detailLoading" class="state-message">加载中…</div>
-          <div v-else-if="detailProjects.length === 0" class="state-message">暂无参与项目</div>
+          <div v-else-if="detailProjects.length === 0" class="state-message">暂无关联项目</div>
           <div v-else class="project-tag-list">
-            <span v-for="proj in detailProjects" :key="proj.id" class="project-tag">
+            <span
+              v-for="proj in detailProjects"
+              :key="proj.id"
+              class="project-tag"
+              :class="{ editable: proj.can_edit }"
+            >
               {{ proj.name }}
+              <span v-if="proj.can_edit" class="tag-edit-badge">可编辑</span>
             </span>
           </div>
         </div>
@@ -163,7 +169,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { fetchMembers, createMember, updateMember, deleteMember, type Member } from '../../api/index'
+import { fetchMembers, createMember, updateMember, deleteMember, fetchMemberProjects, type Member } from '../../api/index'
 
 const members = ref<Member[]>([])
 const loading = ref(false)
@@ -277,14 +283,21 @@ async function submitForm() {
 // ── Detail Drawer ────────────────────────────────────────────
 const detailDrawerVisible = ref(false)
 const detailMember = ref<Member | null>(null)
-const detailProjects = ref<{ id: string; name: string }[]>([])
+const detailProjects = ref<{ id: string; name: string; can_edit: boolean }[]>([])
 const detailLoading = ref(false)
 
 function openDetailDrawer(member: Member) {
   detailMember.value = member
   detailProjects.value = []
   detailDrawerVisible.value = true
-  detailLoading.value = false
+  detailLoading.value = true
+  fetchMemberProjects(member.id)
+    .then(res => {
+      if (res.error) detailProjects.value = []
+      else detailProjects.value = res.data
+    })
+    .catch(() => { detailProjects.value = [] })
+    .finally(() => { detailLoading.value = false })
 }
 
 function closeDetailDrawer() {
@@ -731,9 +744,26 @@ async function executeDelete() {
   font-size: 12px;
   padding: 4px 10px;
   border-radius: var(--radius-full);
+  background: var(--bg-accent);
+  color: var(--muted);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.project-tag.editable {
   background: var(--accent-subtle);
   color: var(--accent);
-  font-weight: 600;
+}
+
+.tag-edit-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: white;
 }
 
 /* ── Delete dialog ─────────────────────────────────────────── */
