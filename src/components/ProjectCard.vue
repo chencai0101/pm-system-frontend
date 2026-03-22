@@ -79,6 +79,25 @@ const effectiveStatus = computed(() => {
 </script>
 
 <style scoped>
+.project-card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-accent);
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}
+.project-card-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 35%, transparent) 0%, transparent 80%);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  pointer-events: none;
+}
 .project-card-body {
   position: relative;
 }
