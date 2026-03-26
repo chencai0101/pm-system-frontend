@@ -67,6 +67,7 @@ function onSubtaskToggled(taskId: string, subtaskId: string, completed: boolean)
   flex-direction: column;
   gap: 10px;
   border-radius: var(--radius-md);
+  background: var(--bg);
   transition: background 0.15s;
 }
 

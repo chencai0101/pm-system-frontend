@@ -61,12 +61,10 @@ const currentTab = ref<'members' | 'projects' | 'permissions' | 'tags'>('members
   width: 360px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
-  background: var(--card);
+  background: var(--bg);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
 }
 
 .sidebar-nav {
@@ -95,8 +93,8 @@ const currentTab = ref<'members' | 'projects' | 'permissions' | 'tags'>('members
 }
 
 .nav-item:hover {
-  background: var(--bg-accent);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-strong);
 }
 
 .nav-item.active {

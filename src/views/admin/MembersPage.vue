@@ -706,18 +706,19 @@ async function executeDelete() {
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.35);
   z-index: 1000;
   display: flex;
   justify-content: flex-end;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .drawer {
   width: 360px;
   height: 100%;
-  background: var(--card);
-  border-left: 1px solid var(--border);
+  background: var(--bg);
+  border-left: 1px solid var(--border-strong);
   display: flex;
   flex-direction: column;
   animation: slideIn 0.2s ease-out;
