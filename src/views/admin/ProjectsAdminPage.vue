@@ -38,9 +38,13 @@
         <div class="project-row-meta">
           <span>{{ project.owner }}</span>
           <span class="meta-sep">·</span>
+          <span v-if="(project as any).members" class="meta-members">{{ (project as any).members }}</span>
+          <span class="meta-sep" v-if="(project as any).members">·</span>
           <span>{{ project.startDate }} → {{ project.endDate }}</span>
           <span class="meta-sep">·</span>
           <span>{{ project.completedCount }}/{{ project.taskCount }} 任务</span>
+          <span class="meta-sep" v-if="(project as any).resources">·</span>
+          <span v-if="(project as any).resources" class="meta-resources">资源：{{ (project as any).resources }}</span>
         </div>
         <div class="project-row-right" @click.stop>
           <button class="icon-btn" title="查看项目" @click="goToProject(project.id)">

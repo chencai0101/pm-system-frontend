@@ -55,6 +55,8 @@ export interface Project {
   id: string
   name: string
   owner: string
+  members: string
+  resources: string
   startDate: string
   endDate: string
   status: string
@@ -103,6 +105,8 @@ function mapBackendProject(p: BackendProject): Project {
     id: p.id,
     name: p.name,
     owner: p.owner,
+    members: p.members ?? "",
+    resources: p.resources ?? "",
     startDate: p.start_date,
     endDate: p.end_date,
     status: p.status,
@@ -143,7 +147,7 @@ function mapBackendTask(t: BackendTask | null): Task {
 
 export async function updateProject(
   id: string,
-  data: { name?: string; owner?: string; start_date?: string; end_date?: string; description?: string; status?: string }
+  data: { name?: string; owner?: string; members?: string; resources?: string; start_date?: string; end_date?: string; description?: string; status?: string }
 ): Promise<Project> {
   const res = await fetch(`${API_BASE}/api/projects/${id}`, {
     method: 'PATCH',
@@ -166,6 +170,8 @@ export async function deleteProject(projectId: string): Promise<void> {
 export async function createProject(data: {
   name: string
   owner: string
+  members?: string
+  resources?: string
   start_date: string
   end_date: string
   description?: string

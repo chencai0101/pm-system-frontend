@@ -11,13 +11,28 @@
       </div>
 
       <div class="modal-body">
-        <div class="meta-row">
-          <div class="meta-field">
-            <label>负责人 <span class="required">*</span></label>
-            <select v-model="form.owner">
-              <option value="">选择成员…</option>
-              <option v-for="m in members" :key="m.id" :value="m.name">{{ m.name }}</option>
+        <div class="meta-field">
+          <label>参与人员 <span class="required">*</span></label>
+          <div class="person-picker">
+            <select @change="addPerson($event)" class="person-select">
+              <option value="">+ 添加人员…</option>
+              <option v-for="m in availableMembers" :key="m.id" :value="m.name">{{ m.name }}</option>
             </select>
+          </div>
+          <div v-if="selectedPeople.length" class="person-chips">
+            <div
+              v-for="(name, idx) in selectedPeople"
+              :key="name"
+              class="person-chip"
+              :class="{ 'is-owner': idx === 0 }"
+            >
+              <span class="chip-label">{{ idx === 0 ? '负责人' : '参与人' }}</span>
+              <span class="chip-name">{{ name }}</span>
+              <button class="chip-remove" @click="removePerson(idx)">✕</button>
+            </div>
+          </div>
+          <div v-if="!selectedPeople.length" class="person-hint">
+            从上方下拉框添加人员，第一个自动成为负责人
           </div>
         </div>
 
@@ -30,6 +45,16 @@
             <label>结束日期 <span class="required">*</span></label>
             <input v-model="form.end_date" type="date" />
           </div>
+        </div>
+
+        <div class="meta-field">
+          <label>所需资源</label>
+          <input
+            v-model="form.resources"
+            class="text-input"
+            type="text"
+            placeholder="如：外包团队、供应商、外部讲师…"
+          />
         </div>
 
         <div v-if="errorMsg" class="error-banner">{{ errorMsg }}</div>
@@ -46,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { updateProject, fetchMembers, type Member } from '../api/index'
 import type { Project } from '../api/index'
 
@@ -63,10 +88,35 @@ const members = ref<Member[]>([])
 
 const form = reactive({
   name: props.project.name,
-  owner: props.project.owner,
+  resources: (props.project as any).resources || "",
   start_date: props.project.startDate,
   end_date: props.project.endDate,
 })
+
+// Build people list: owner first, then existing members
+const existingMembers = (props.project as any).members
+  ? (props.project as any).members.split('、').filter(Boolean)
+  : []
+const selectedPeople = ref<string[]>([
+  props.project.owner,
+  ...existingMembers,
+])
+
+const availableMembers = computed(() =>
+  members.value.filter(m => !selectedPeople.value.includes(m.name))
+)
+
+function addPerson(e: Event) {
+  const name = (e.target as HTMLSelectElement).value
+  if (name) {
+    selectedPeople.value.push(name)
+    ;(e.target as HTMLSelectElement).value = ''
+  }
+}
+
+function removePerson(idx: number) {
+  selectedPeople.value.splice(idx, 1)
+}
 
 onMounted(async () => {
   const res = await fetchMembers()
@@ -75,7 +125,7 @@ onMounted(async () => {
 
 function validate(): string {
   if (!form.name.trim()) return '请填写项目名称'
-  if (!form.owner) return '请选择负责人'
+  if (selectedPeople.value.length === 0) return '请至少添加一名参与人员'
   if (!form.start_date) return '请选择开始日期'
   if (!form.end_date) return '请选择结束日期'
   if (form.end_date < form.start_date) return '结束日期不能早于开始日期'
@@ -90,7 +140,9 @@ async function submit() {
   try {
     await updateProject(props.project.id, {
       name: form.name.trim(),
-      owner: form.owner,
+      owner: selectedPeople.value[0],
+      members: selectedPeople.value.slice(1).join('、'),
+      resources: form.resources,
       start_date: form.start_date,
       end_date: form.end_date,
     })
@@ -199,7 +251,8 @@ async function submit() {
 }
 .required { color: #dc2626; }
 .meta-field select,
-.meta-field input[type="date"] {
+.meta-field input[type="date"],
+.meta-field .text-input {
   padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -210,8 +263,98 @@ async function submit() {
   transition: border-color 0.15s;
 }
 .meta-field select:focus,
-.meta-field input[type="date"]:focus {
+.meta-field input[type="date"]:focus,
+.meta-field .text-input:focus {
   border-color: var(--accent);
+}
+
+.person-picker {
+  margin-bottom: 8px;
+}
+
+.person-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-accent);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+}
+
+.person-select:focus {
+  border-color: var(--accent);
+}
+
+.person-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.person-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-accent);
+}
+
+.person-chip.is-owner {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-accent));
+}
+
+.chip-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  min-width: 40px;
+}
+
+.person-chip.is-owner .chip-label {
+  color: var(--accent);
+}
+
+.chip-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chip-remove {
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.chip-remove:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.person-hint {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  padding: 4px 0;
 }
 .modal-footer {
   display: flex;
