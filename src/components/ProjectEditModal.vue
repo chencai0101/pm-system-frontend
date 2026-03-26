@@ -159,15 +159,17 @@ async function submit() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .modal {
-  background: var(--card);
+  background: var(--glass);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   width: 520px;
   max-width: 90vw;
@@ -306,7 +308,9 @@ async function submit() {
 
 .person-chip.is-owner {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 8%, var(--bg-accent));
+  background: rgba(30, 64, 175, 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .chip-label {

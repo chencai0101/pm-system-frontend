@@ -65,6 +65,8 @@ const currentTab = ref<'members' | 'projects' | 'permissions' | 'tags'>('members
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .sidebar-nav {

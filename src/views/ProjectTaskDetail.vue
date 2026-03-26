@@ -449,19 +449,20 @@ onMounted(async () => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(15, 23, 42, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .dialog {
   width: 380px;
   max-width: 90vw;
-  background: var(--card);
+  background: var(--glass);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);

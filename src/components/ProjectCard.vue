@@ -109,7 +109,8 @@ const effectiveStatus = computed(() => {
   position: absolute;
   top: 0;
   left: 0;
-  height: 100%;
+  bottom: 0;
+  width: 100%;
   background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 35%, transparent) 0%, transparent 80%);
   border-radius: var(--radius-md) 0 0 var(--radius-md);
   pointer-events: none;
