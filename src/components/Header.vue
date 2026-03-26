@@ -17,7 +17,7 @@
         @click="$emit('click:dashboard')"
       >
         <span class="tab-icon">📊</span>
-        部门看板
+        部门
       </button>
       <button
         class="tab"
@@ -25,8 +25,17 @@
         @click="$emit('click:project')"
       >
         <span class="tab-icon">📋</span>
-        项目详情
+        我的
         <span v-if="projectId" class="tab-project-id">{{ projectId }}</span>
+      </button>
+      <button
+        class="tab"
+        :class="{ active: currentTab === 'report' }"
+        :title="reportPeriod"
+        @click="$emit('click:report')"
+      >
+        <span class="tab-icon">📑</span>
+        周报
       </button>
       <button
         class="tab"
@@ -34,7 +43,7 @@
         @click="$emit('click:admin')"
       >
         <span class="tab-icon">⚙️</span>
-        管理后台
+        后台
       </button>
     </nav>
 
@@ -48,14 +57,16 @@
 import ThemeToggle from './ThemeToggle.vue'
 
 defineProps<{
-  currentTab: 'dashboard' | 'project' | 'admin'
+  currentTab: 'dashboard' | 'project' | 'admin' | 'report'
   projectId: string
+  reportPeriod?: string
 }>()
 
 defineEmits<{
   'click:dashboard': []
   'click:project': []
   'click:admin': []
+  'click:report': []
 }>()
 </script>
 

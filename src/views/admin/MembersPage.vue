@@ -41,7 +41,6 @@
               <span class="role-badge" :class="member.role">
                 {{ member.role === 'admin' ? '系统管理员' : '普通成员' }}
               </span>
-              <span v-if="member.wecom_user_id" class="wecom-icon" title="已绑定企业微信">💬</span>
             </div>
           </div>
         </div>
@@ -498,8 +497,6 @@ async function executeDelete() {
 
 .role-badge.admin { background: #ef444433; color: #ef4444; }
 .role-badge.member { background: var(--bg-accent); color: var(--muted); }
-
-.wecom-icon { font-size: 12px; }
 
 .member-card-right {
   display: flex;
