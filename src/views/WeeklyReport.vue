@@ -13,7 +13,7 @@
       <div class="report-column">
         <div class="column-header">
           <span class="column-icon">⏰</span>
-          <span class="column-title">预期</span>
+          <span class="column-title">逾期</span>
           <span class="column-count">{{ alerts.length }}</span>
         </div>
         <div class="column-body">
