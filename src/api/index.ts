@@ -446,3 +446,69 @@ export async function fetchMemberProjects(memberId: string): Promise<{ data: Mem
   const json: { data: BackendMemberProject[]; error: string | null } = await res.json()
   return { data: json.data.map(mapBackendMemberProject), error: json.error }
 }
+
+// ── Weekly Report ──────────────────────────────────────
+
+export interface AlertTask {
+  id: string
+  project_id: string
+  project_name: string
+  tags: string[]
+  task_title: string
+  owner: string
+  days_left: number
+  overdue: boolean
+  end_date: string
+}
+
+export interface DoneTaskItem {
+  id: string
+  title: string
+  completed_date: string
+}
+
+export interface RunningTaskItem {
+  id: string
+  title: string
+  progress_pct: number
+}
+
+export interface ProjectProgress {
+  id: string
+  project_name: string
+  tags: string[]
+  owner: string
+  progress_pct: number
+  done_count: number
+  total_count: number
+  done_tasks: DoneTaskItem[]
+  running_tasks: RunningTaskItem[]
+  note: string
+}
+
+export interface RecentTask {
+  id: string
+  project_id: string
+  project_name: string
+  tags: string[]
+  task_title: string
+  owner: string
+  created_date: string
+}
+
+export interface WeeklyReport {
+  week_label: string
+  week_start: string
+  week_end: string
+  alerts: AlertTask[]
+  progress: ProjectProgress[]
+  recent: RecentTask[]
+}
+
+export async function fetchWeeklyReport(weekOffset: number = 0): Promise<{ data: WeeklyReport | null; error: string | null }> {
+  const res = await fetch(`${API_BASE}/api/weekly-report?week_offset=${weekOffset}`)
+  if (!res.ok) return { data: null, error: `请求失败: ${res.status}` }
+  const json = await res.json()
+  if (json.detail) return { data: null, error: json.detail }
+  return { data: json as WeeklyReport, error: null }
+}

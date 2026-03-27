@@ -2,9 +2,9 @@
   <div class="report-page">
     <!-- Week bookmark -->
     <div class="report-bookmark">
-      <span class="bookmark-arrow">‹</span>
-      <span class="bookmark-text">{{ currentPeriod }}</span>
-      <span class="bookmark-arrow">›</span>
+      <span class="bookmark-arrow" @click="prevWeek">‹</span>
+      <span class="bookmark-text">{{ weekLabel || '加载中…' }}</span>
+      <span class="bookmark-arrow" v-show="weekOffset < 1" @click="nextWeek">›</span>
     </div>
 
     <!-- Three columns -->
@@ -25,15 +25,15 @@
             :class="{ overdue: item.overdue }"
           >
             <div class="item-top">
-              <span class="item-project">{{ item.projectName }}</span>
+              <span class="item-project">{{ item.project_name }}</span>
               <span class="item-badge" :class="item.overdue ? 'badge-overdue' : 'badge-warning'">
-                {{ item.overdue ? '已延期' : `距到期${item.daysLeft}天` }}
+                {{ item.overdue ? '已延期' : `距到期${item.days_left}天` }}
               </span>
             </div>
             <div v-if="item.tags && item.tags.length" class="item-tags">
               <span v-for="tag in item.tags" :key="tag" class="item-tag">{{ tag }}</span>
             </div>
-            <div class="item-task">{{ item.taskTitle }}</div>
+            <div class="item-task">{{ item.task_title }}</div>
             <div class="item-owner">{{ item.owner }} 负责</div>
           </div>
         </div>
@@ -55,24 +55,24 @@
           >
             <!-- 项目名独占一行 -->
             <div class="item-top">
-              <span class="item-project">{{ item.projectName }}</span>
+              <span class="item-project">{{ item.project_name }}</span>
             </div>
             <!-- 进度条独占一行 -->
             <div class="progress-row">
               <div class="item-progress-bar">
-                <div class="item-progress-fill" :style="{ width: item.progressPct + '%' }" />
+                <div class="item-progress-fill" :style="{ width: item.progress_pct + '%' }" />
               </div>
-              <span class="item-pct">{{ Math.round(item.progressPct) }}%</span>
+              <span class="item-pct">{{ Math.round(item.progress_pct) }}%</span>
             </div>
             <div v-if="item.tags && item.tags.length" class="item-tags">
               <span v-for="tag in item.tags" :key="tag" class="item-tag">{{ tag }}</span>
             </div>
 
             <!-- 已完成任务 -->
-            <div v-if="item.doneTasks.length" class="task-group">
+            <div v-if="item.done_tasks.length" class="task-group">
               <div class="task-group-label">已完成</div>
               <div class="task-list">
-                <div v-for="t in item.doneTasks" :key="t.id" class="task-row task-row-done">
+                <div v-for="t in item.done_tasks" :key="t.id" class="task-row task-row-done">
                   <span class="task-row-title">{{ t.title }}</span>
                   <span class="task-row-done-badge">✓</span>
                 </div>
@@ -80,16 +80,16 @@
             </div>
 
             <!-- 执行中任务 -->
-            <div v-if="item.runningTasks.length" class="task-group">
+            <div v-if="item.running_tasks.length" class="task-group">
               <div class="task-group-label">执行中</div>
               <div class="task-list">
-                <div v-for="t in item.runningTasks" :key="t.id" class="task-row task-row-running">
+                <div v-for="t in item.running_tasks" :key="t.id" class="task-row task-row-running">
                   <div class="task-row-top">
                     <span class="task-row-title">{{ t.title }}</span>
-                    <span class="task-row-pct">{{ Math.round(t.progressPct) }}%</span>
+                    <span class="task-row-pct">{{ Math.round(t.progress_pct) }}%</span>
                   </div>
                   <div class="task-row-progress">
-                    <div class="task-row-progress-fill" :style="{ width: t.progressPct + '%' }" />
+                    <div class="task-row-progress-fill" :style="{ width: t.progress_pct + '%' }" />
                   </div>
                 </div>
               </div>
@@ -119,13 +119,13 @@
             class="report-item"
           >
             <div class="item-top">
-              <span class="item-project">{{ item.projectName }}</span>
-              <span class="item-date">{{ item.createdDate }}</span>
+              <span class="item-project">{{ item.project_name }}</span>
+              <span class="item-date">{{ item.created_date }}</span>
             </div>
             <div v-if="item.tags && item.tags.length" class="item-tags">
               <span v-for="tag in item.tags" :key="tag" class="item-tag">{{ tag }}</span>
             </div>
-            <div class="item-task">{{ item.taskTitle }}</div>
+            <div class="item-task">{{ item.task_title }}</div>
             <div class="item-owner">{{ item.owner }} 负责</div>
           </div>
         </div>
@@ -133,142 +133,49 @@
     </div>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import { fetchWeeklyReport, type WeeklyReport } from '../api/index'
 
-// 模拟数据 — 后续接后端API
-const alerts = ref([
-  {
-    id: '1',
-    projectName: '年度系统升级项目',
-    tags: ['战略专项', '数字化转型'],
-    taskTitle: '系统开发与测试',
-    owner: '李四',
-    daysLeft: 3,
-    overdue: false,
-  },
-  {
-    id: '2',
-    projectName: '客户数据治理',
-    tags: ['数据治理'],
-    taskTitle: '数据质量验证',
-    owner: '李四',
-    daysLeft: 0,
-    overdue: true,
-  },
-  {
-    id: '3',
-    projectName: '流程优化专项',
-    tags: ['管理提升'],
-    taskTitle: '流程梳理与优化',
-    owner: '王五',
-    daysLeft: 5,
-    overdue: false,
-  },
-])
+const weekLabel = ref('')
+const weekStart = ref('')
+const weekEnd = ref('')
+const alerts = ref<any[]>([])
+const progress = ref<any[]>([])
+const recent = ref<any[]>([])
+const weekOffset = ref(1)
 
-const progress = ref([
-  {
-    id: 'P-001',
-    projectName: '年度系统升级项目',
-    tags: ['战略专项', '数字化转型'],
-    owner: '李四',
-    progressPct: 50,
-    doneTasks: [
-      { id: 'T-001', title: '需求分析与方案设计' },
-      { id: 'T-002', title: '架构设计与评审' },
-    ],
-    runningTasks: [
-      { id: 'T-003', title: '系统开发与测试', progressPct: 60 },
-      { id: 'T-004', title: '上线部署与验收', progressPct: 20 },
-    ],
-    note: '',
-  },
-  {
-    id: 'P-002',
-    projectName: '客户数据治理',
-    tags: ['数据治理'],
-    owner: '李四',
-    progressPct: 33,
-    doneTasks: [
-      { id: 'T-005', title: '数据清洗规则制定' },
-    ],
-    runningTasks: [
-      { id: 'T-006', title: '数据清洗执行', progressPct: 30 },
-      { id: 'T-007', title: '数据质量验证', progressPct: 0 },
-    ],
-    note: '',
-  },
-  {
-    id: 'P-004',
-    projectName: '团队培训计划',
-    tags: ['人才培养'],
-    owner: '赵六',
-    progressPct: 25,
-    doneTasks: [
-      { id: 'T-009', title: 'Q1技术培训' },
-    ],
-    runningTasks: [
-      { id: 'T-010', title: 'Q2管理培训', progressPct: 10 },
-    ],
-    note: '',
-  },
-])
-
-const recent = ref([
-  {
-    id: '1',
-    projectName: '年度系统升级项目',
-    tags: ['战略专项', '数字化转型'],
-    taskTitle: '上线部署与验收',
-    owner: '张三',
-    createdDate: '3/20',
-  },
-  {
-    id: '2',
-    projectName: '安全合规检查',
-    tags: ['合规管理'],
-    taskTitle: '合规检查启动',
-    owner: '陈七',
-    createdDate: '3/19',
-  },
-  {
-    id: '3',
-    projectName: '流程优化专项',
-    tags: ['管理提升'],
-    taskTitle: '流程梳理与优化',
-    owner: '王五',
-    createdDate: '3/18',
-  },
-  {
-    id: '4',
-    projectName: '新产品上线推广',
-    tags: ['市场推广'],
-    taskTitle: '推广方案制定',
-    owner: '张三',
-    createdDate: '3/17',
-  },
-])
-
-// 计算当前周区间
-const currentPeriod = computed(() => {
-  const now = new Date()
-  const day = now.getDay()
-  const diffToLastMonday = day === 0 ? 6 : day - 1
-  const lastMonday = new Date(now)
-  lastMonday.setDate(now.getDate() - diffToLastMonday - 7)
-  const lastSunday = new Date(lastMonday)
-  lastSunday.setDate(lastMonday.getDate() + 6)
-  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`
-  return `${lastMonday.getFullYear()}年3月第${getWeekNumber(lastMonday)}周（${fmt(lastMonday)} - ${fmt(lastSunday)}）`
-})
-
-function getWeekNumber(d: Date): number {
-  const oneJan = new Date(d.getFullYear(), 0, 1)
-  return Math.ceil(((d.getTime() - oneJan.getTime()) / 86400000 + oneJan.getDay() + 1) / 7)
+async function loadReport() {
+  const { data, error } = await fetchWeeklyReport(weekOffset.value)
+  if (error || !data) {
+    console.error('周报加载失败:', error)
+    return
+  }
+  weekLabel.value = data.week_label
+  weekStart.value = data.week_start
+  weekEnd.value = data.week_end
+  alerts.value = data.alerts
+  progress.value = data.progress
+  recent.value = data.recent
 }
+
+function prevWeek() {
+  weekOffset.value--
+  loadReport()
+}
+
+function nextWeek() {
+  if (weekOffset.value < 1) {
+    weekOffset.value++
+    loadReport()
+  }
+}
+
+onMounted(() => {
+  loadReport()
+})
 </script>
+
 
 <style scoped>
 .report-page {
