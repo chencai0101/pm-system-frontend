@@ -486,12 +486,9 @@ export interface ProjectProgress {
   note: string
 }
 
-export interface RecentTask {
+export interface RecentProject {
   id: string
-  project_id: string
-  project_name: string
-  tags: string[]
-  task_title: string
+  name: string
   owner: string
   created_date: string
 }
@@ -502,7 +499,7 @@ export interface WeeklyReport {
   week_end: string
   alerts: AlertTask[]
   progress: ProjectProgress[]
-  recent: RecentTask[]
+  recent: RecentProject[]
 }
 
 export async function fetchWeeklyReport(weekOffset: number = 0): Promise<{ data: WeeklyReport | null; error: string | null }> {

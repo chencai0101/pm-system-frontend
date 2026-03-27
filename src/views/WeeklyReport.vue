@@ -112,20 +112,16 @@
           <span class="column-count">{{ recent.length }}</span>
         </div>
         <div class="column-body">
-          <div v-if="recent.length === 0" class="empty-hint">近7日无新增任务</div>
+          <div v-if="recent.length === 0" class="empty-hint">本周无新增项目</div>
           <div
             v-for="item in recent"
             :key="item.id"
             class="report-item"
           >
             <div class="item-top">
-              <span class="item-project">{{ item.project_name }}</span>
+              <span class="item-project">{{ item.name }}</span>
               <span class="item-date">{{ item.created_date }}</span>
             </div>
-            <div v-if="item.tags && item.tags.length" class="item-tags">
-              <span v-for="tag in item.tags" :key="tag" class="item-tag">{{ tag }}</span>
-            </div>
-            <div class="item-task">{{ item.task_title }}</div>
             <div class="item-owner">{{ item.owner }} 负责</div>
           </div>
         </div>
@@ -135,14 +131,14 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { fetchWeeklyReport, type WeeklyReport } from '../api/index'
+import { fetchWeeklyReport, type WeeklyReport, type RecentProject } from '../api/index'
 
 const weekLabel = ref('')
 const weekStart = ref('')
 const weekEnd = ref('')
 const alerts = ref<any[]>([])
 const progress = ref<any[]>([])
-const recent = ref<any[]>([])
+const recent = ref<RecentProject[]>([])
 const weekOffset = ref(1)
 
 async function loadReport() {
